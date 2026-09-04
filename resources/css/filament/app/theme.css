@@ -1,0 +1,124 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source "../../../../app-modules/app/src/**/*";
+@source "../../../../app-modules/app/resources/views/**/*";
+/*
+|--------------------------------------------------------------------------
+| Layout
+|--------------------------------------------------------------------------
+*/
+
+@media (min-width: 1024px) {
+    .fi-body-has-topbar .fi-sidebar {
+        top: 0 !important;
+        height: 100dvh !important;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Sidebar
+|--------------------------------------------------------------------------
+*/
+
+.fi-sidebar {
+    @apply h-full
+        bg-white
+        border-r
+        border-gray-200
+        dark:bg-gray-900
+        dark:border-gray-800;
+
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.gray.400") theme("colors.gray.100");
+}
+
+.fi-sidebar-nav {
+    @apply space-y-1 pt-2.5 overflow-y-auto overflow-x-hidden;
+
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.gray.400") theme("colors.gray.100");
+}
+
+.fi-sidebar-item {
+    @apply transition-colors duration-200 ease-in-out;
+}
+
+.fi-sidebar-item .fi-sidebar-item-btn {
+    @apply hover:bg-gray-100
+        dark:text-gray-300
+        dark:hover:bg-gray-800;
+
+    padding-block: calc(var(--spacing) * 1.7);
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    @apply bg-gray-100
+        font-semibold
+        dark:bg-gray-800;
+}
+
+.fi-sidebar-group,
+.fi-sidebar-group-items {
+    @apply rounded-xl;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Topbar
+|--------------------------------------------------------------------------
+*/
+
+.fi-topbar {
+    @apply min-h-14
+        bg-white
+        border-b
+        border-gray-200
+        dark:bg-gray-900
+        dark:border-gray-800;
+
+    /* Sustituimos la sombra por un borde */
+    box-shadow: none;
+}
+
+.fi-topbar nav {
+    @apply px-4 lg:px-6;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Scrollbars
+|--------------------------------------------------------------------------
+*/
+
+.fi-sidebar::-webkit-scrollbar {
+    @apply w-2;
+}
+
+.fi-sidebar::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.fi-sidebar::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+}
+
+.fi-sidebar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar {
+    @apply w-2;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
