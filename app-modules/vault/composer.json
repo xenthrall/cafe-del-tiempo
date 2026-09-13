@@ -1,0 +1,24 @@
+{
+	"name": "tequia/vault",
+	"description": "Core vault domain module for Café del Tiempo providing secure storage and encryption logic",
+	"type": "library",
+	"version": "1.0",
+	"license": "MIT",
+	"require": {},
+	"autoload": {
+		"psr-4": {
+			"Tequia\\Vault\\": "src/",
+			"Tequia\\Vault\\Tests\\": "tests/",
+			"Tequia\\Vault\\Database\\Factories\\": "database/factories/",
+			"Tequia\\Vault\\Database\\Seeders\\": "database/seeders/"
+		}
+	},
+	"minimum-stability": "stable",
+	"extra": {
+		"laravel": {
+			"providers": [
+				"Tequia\\Vault\\Providers\\VaultServiceProvider"
+			]
+		}
+	}
+}

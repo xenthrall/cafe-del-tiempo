@@ -11,8 +11,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->register(AppPanelProvider::class);
 
         view()->prependNamespace(
-            "filament-panels",
-            __DIR__ . "/../../resources/views/vendor/filament-panels",
+            'filament-panels',
+            __DIR__.'/../../resources/views/vendor/filament-panels',
         );
     }
 
