@@ -78,23 +78,55 @@
 
                 {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::SIDEBAR_LOGO_BEFORE) }}
 
-                <div
-                    @if ($isSidebarCollapsibleOnDesktop || $isSidebarFullyCollapsibleOnDesktop)
-                        x-show="$store.sidebar.isOpen"
-                    @endif
-                    class="fi-sidebar-header-logo-ctn"
-                >
-                    @if ($homeUrl = filament()->getHomeUrl())
-                        <a {{ \Filament\Support\generate_href_html($homeUrl) }}>
-                            <x-filament-panels::logo />
-                        </a>
-                    @else
-                        <x-filament-panels::logo />
-                    @endif
-                </div>
 
                 {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::SIDEBAR_LOGO_AFTER) }}
             </header>
+            {{-- CONTENEDOR DEL LOGO (Fuera del header para mayor control) --}}
+                        <div class="fi-sidebar-header-logo-ctn flex items-center justify-center w-full px-4 py-4">
+                            @if ($homeUrl = filament()->getHomeUrl())
+                                <a {{ \Filament\Support\generate_href_html($homeUrl) }} class="w-full block">
+                            @else
+                                <div class="w-full block">
+                            @endif
+
+                                {{-- 1. LOGO COMPLETO (Se muestra solo cuando el menú está ABIERTO) --}}
+                                <div
+                                    @if ($isSidebarCollapsibleOnDesktop || $isSidebarFullyCollapsibleOnDesktop)
+                                        x-show="$store.sidebar.isOpen"
+                                        x-transition:enter="transition ease-out duration-200 delay-100"
+                                        x-transition:enter-start="opacity-0"
+                                        x-transition:enter-end="opacity-100"
+                                    @endif
+                                    class="flex items-center justify-center w-full"
+                                >
+                                    {{-- Logo Completo - Tema Claro --}}
+                                    <img src="{{ asset('images/logo-light.png') }}" alt="Café del Tiempo" class="h-16 w-auto max-w-full object-contain mx-auto dark:hidden">
+
+                                    {{-- Logo Completo - Tema Oscuro --}}
+                                    <img src="{{ asset('images/logo-dark.png') }}" alt="Café del Tiempo" class="hidden h-16 w-auto max-w-full object-contain mx-auto dark:block">
+                                </div>
+
+                                {{-- 2. ICONO REDUCIDO 1:1 (Se muestra solo cuando el menú está COLAPSADO) --}}
+                                @if ($isSidebarCollapsibleOnDesktop || $isSidebarFullyCollapsibleOnDesktop)
+                                    <div
+                                        x-cloak
+                                        x-show="! $store.sidebar.isOpen"
+                                        class="flex items-center justify-center w-full"
+                                    >
+                                        {{-- Icono 1:1 - Tema Claro --}}
+                                        <img src="{{ asset('images/icon-light.png') }}" alt="Icono" class="h-10 w-10 object-contain mx-auto dark:hidden">
+
+                                        {{-- Icono 1:1 - Tema Oscuro --}}
+                                        <img src="{{ asset('images/icon-dark.png') }}" alt="Icono" class="hidden h-10 w-10 object-contain mx-auto dark:block">
+                                    </div>
+                                @endif
+
+                            @if ($homeUrl = filament()->getHomeUrl())
+                                </a>
+                            @else
+                                </div>
+                            @endif
+                        </div>
         </div>
 
         @if (filament()->hasTenancy() && filament()->hasTenantMenu())

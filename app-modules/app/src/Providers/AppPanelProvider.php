@@ -32,6 +32,9 @@ class AppPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->sidebarLivewireComponent(Sidebar::class)
             ->topbarLivewireComponent(Topbar::class)
+            ->brandLogo(asset('images/logo-light.png'))
+            ->darkModeBrandLogo(asset('images/logo-dark.png'))
+            ->brandLogoHeight('5rem') // '3rem', '4rem' o '64px'
             ->colors([
                 'danger' => Color::Rose,
                 // 'gray' => Color::Gray,
