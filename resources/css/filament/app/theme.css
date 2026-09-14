@@ -2,6 +2,10 @@
 
 @source "../../../../app-modules/app/src/**/*";
 @source "../../../../app-modules/app/resources/views/**/*";
+
+@source "../../../../app-modules/vault/src/**/*";
+@source "../../../../app-modules/vault/resources/views/**/*";
+/*
 /*
 |--------------------------------------------------------------------------
 | Layout

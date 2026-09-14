@@ -4,4 +4,5 @@ Before planning or editing, find the row whose globs match the file's path and r
 
 | Applies to | Rule file |
 | --- | --- |
+| app-modules/*/resources/views/filament/pages/** | .ai/rules/pages.md |
 | app-modules/*/tests/** | .ai/rules/tests.md |
