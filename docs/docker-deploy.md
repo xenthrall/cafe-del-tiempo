@@ -40,9 +40,10 @@ Edita `.env` (`nano .env`) y ajusta al menos:
 
 | Variable | Qué poner |
 |---|---|
-| `APP_URL` | La URL/IP pública real donde se va a acceder, ej. `http://TU_IP:9000` |
+| `APP_URL` | La URL pública real, con el esquema correcto: `http://TU_IP:9000` si accedes directo, o `https://tu-dominio` si hay un reverse proxy/túnel (Cloudflare Tunnel, nginx, etc.) delante que sirve HTTPS |
 | `DB_PASSWORD` | Una contraseña fuerte — queda vacía en el ejemplo, Postgres no arranca sano sin ella |
 | `APP_KEY` | Se genera en el paso 3, déjala vacía por ahora |
+| `SESSION_SECURE_COOKIE` | `true` si `APP_URL` es `https://...` (evita que la cookie de sesión viaje sin el flag `Secure`) |
 
 El resto de valores del `.env.docker.example` (nombres de conexión, `DB_HOST=postgres`, colas por base de datos, etc.) ya están pensados para este `docker-compose.yml` — no los cambies salvo que sepas por qué.
 
@@ -127,6 +128,23 @@ Si el firewall del servidor bloquea el puerto por defecto, ábrelo (ejemplo con 
 ```bash
 sudo ufw allow 9000/tcp
 ```
+
+## Si expones el sitio detrás de un reverse proxy o túnel (HTTPS)
+
+Si en vez de entrar directo por `http://TU_IP:9000` pones algo delante que sirve HTTPS al navegador (Cloudflare Tunnel, nginx, otro load balancer) apuntando al puerto `9000`, la petición le sigue llegando a Laravel como HTTP plano por dentro — el proxy termina el TLS, y por defecto Laravel no sabe que el tráfico original era seguro. Esto se nota porque el navegador bloquea peticiones de Livewire (u otros assets) por **contenido mixto**: la página se sirve por HTTPS pero Laravel genera URLs con `http://`.
+
+Esto ya está resuelto en el código (`bootstrap/app.php` confía en el proxy vía `$middleware->trustProxies(at: '*')`, para que Laravel lea la cabecera `X-Forwarded-Proto` que reenvía el proxy y sepa que la petición original fue HTTPS), pero para que funcione de punta a punta también necesitas, en el `.env` del servidor:
+
+1. `APP_URL=https://tu-dominio` (el dominio público real, no `http://IP:9000`).
+2. `SESSION_SECURE_COOKIE=true`.
+
+Y reiniciar los contenedores para que tomen el `.env` nuevo:
+
+```bash
+docker compose up -d
+```
+
+`trustProxies(at: '*')` confía en **cualquier** IP como proxy — válido aquí porque el puerto de `app` (PHP-FPM) no se publica al host, solo `nginx` lo hace, así que lo único que puede hablarle a `app` es el propio `nginx` del mismo `docker-compose.yml` (su IP en la red interna de Docker cambia entre despliegues, por eso no se puede fijar una IP concreta). Si el día de mañana expones `app` directamente a internet sin `nginx`/proxy de por medio, esta confianza total dejaría de ser segura y habría que restringirla a una IP fija.
 
 ## Actualizar a una versión nueva (deploy siguiente)
 

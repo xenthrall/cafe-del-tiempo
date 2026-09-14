@@ -12,7 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // La app corre detrás de nginx (mismo docker-compose) y, en producción,
+        // de un túnel de Cloudflare que la expone en HTTPS — ninguno de los
+        // dos tiene una IP fija conocida de antemano (la del contenedor nginx
+        // es dinámica), así que se confía en cualquier proxy para leer
+        // X-Forwarded-Proto y que Laravel/Livewire generen URLs con https.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
