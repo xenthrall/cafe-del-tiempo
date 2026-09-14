@@ -1,0 +1,55 @@
+# Dependencias que se reinstalan/recompilan dentro de la imagen
+/vendor
+/node_modules
+
+# Control de versiones y tooling del editor/agentes
+.git
+.gitignore
+.github
+.claude
+.ai
+.editorconfig
+.idea
+.vscode
+.nova
+.zed
+.cursor
+.codex
+
+# Entornos locales: la imagen recibe su configuración vía .env.docker
+# montado por docker-compose, nunca copiado dentro del build.
+.env
+.env.*
+!.env.docker.example
+
+# Caches y artefactos generados localmente (se regeneran en el entrypoint /
+# en la imagen; si se copian tal cual pueden referenciar paquetes require-dev
+# como laravel/boost que no existen en la instalación --no-dev).
+/bootstrap/cache/*.php
+/storage/*.key
+/storage/pail
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*.log
+!/storage/framework/cache/data/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/testing/.gitignore
+!/storage/framework/views/.gitignore
+
+# Base de datos local (SQLite es solo para desarrollo; el despliegue usa Postgres)
+/database/*.sqlite
+
+# Tests y documentación de trabajo, no necesarios en la imagen de runtime
+/tests
+/app-modules/*/tests
+.phpunit.cache
+.phpunit.result.cache
+phpunit.xml
+
+Dockerfile
+docker-compose.yml
+.dockerignore
+docs
+README.md
