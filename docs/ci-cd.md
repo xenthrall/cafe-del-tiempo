@@ -4,7 +4,7 @@ Este documento explica cómo aplicar CI/CD a este proyecto usando Bitbucket Pipe
 
 ## CI vs CD, en corto
 
-- **CI (Integración Continua)**: cada vez que subes código, un robot corre tus tests y tu linter automáticamente (y, en este proyecto, verifica que los assets ya compilados no quedaron desactualizados). Si algo falla, te enteras en minutos, no cuando ya está en producción.
+- **CI (Integración Continua)**: cada vez que subes código, un robot corre tus tests y tu linter automáticamente. Si algo falla, te enteras en minutos, no cuando ya está en producción.
 - **CD (Entrega/Despliegue Continuo)**: cuando el código en `main` pasa CI, otro paso automático se conecta a tu servidor y reconstruye/levanta el contenedor con el código nuevo, sin que tengas que hacerlo a mano por SSH.
 
 Para este proyecto, el flujo elegido es:
@@ -16,7 +16,9 @@ Para este proyecto, el flujo elegido es:
 
 Este enfoque es más simple de entender (un componente menos, el registry) a cambio de dos cosas a tener en cuenta: el build consume recursos del propio servidor de producción mientras corre, y "volver atrás" ya no es "desplegar la imagen anterior" sino hacer `git checkout`/`revert` a un commit anterior y reconstruir. Para un proyecto personal donde el objetivo es aprender el flujo de CI/CD, es una elección razonable.
 
-**Cambio de estrategia sobre assets**: en vez de que el pipeline compile `public/build/` (con Node) y lo suba al servidor, ahora **tú compilas localmente y comiteas `public/build/` directo al repo** (`git add public/build -f`, ya que la carpeta seguía en `.gitignore` — se la quité, ver más abajo). Esto saca a Node por completo del servidor: el `Dockerfile` ya esperaba encontrar `public/build/` listo antes de construir la imagen (ver [`docker-deploy.md`](docker-deploy.md)), así que el servidor solo necesita `git pull` + `docker compose up -d --build`, sin el contenedor Node desechable que documentamos antes. El riesgo que introduce esto es olvidar recompilar antes de comitear un cambio de frontend — el pipeline lo cubre con un step que falla si `public/build/` no coincide con lo que generaría `npm run build` (ver más abajo).
+**Cambio de estrategia sobre assets**: en vez de que el pipeline compile `public/build/` (con Node) y lo suba al servidor, ahora **tú compilas localmente y comiteas `public/build/` directo al repo** (`git add public/build -f`, ya que la carpeta seguía en `.gitignore` — se la quité, ver más abajo). Esto saca a Node por completo tanto del servidor como del pipeline: el `Dockerfile` ya esperaba encontrar `public/build/` listo antes de construir la imagen (ver [`docker-deploy.md`](docker-deploy.md)), así que el servidor solo necesita `git pull` + `docker compose up -d --build`.
+
+Habíamos agregado un step de CI que corría `npm run build` solo para *verificar* (con `git diff`) que lo comiteado coincidía con el fuente, pero lo quitamos: ese step necesitaba también `vendor/` (Composer) para resolver los estilos de Filament, y como corría en una imagen Node aparte sin `composer install`, fallaba siempre — arreglarlo bien (compartir `vendor/` entre steps con `artifacts`, o instalar PHP+Composer en la imagen Node) consume minutos gratis de Bitbucket que por ahora preferimos no gastar. El riesgo que esto deja abierto — olvidar recompilar `public/build/` antes de comitear un cambio de frontend — queda sobre ti por ahora; si más adelante quieres blindarlo, se puede retomar como mejora del pipeline.
 
 Dos ramas (`main`/`develop`) más PRs es el modelo mínimo para practicar esto: te obliga a pasar por PR (donde ves el resultado de CI antes de mergear) en vez de empujar directo a producción, sin la complejidad de GitFlow completo (sin ramas `release`/`hotfix`).
 
@@ -27,7 +29,7 @@ Dos ramas (`main`/`develop`) más PRs es el modelo mínimo para practicar esto: 
 - Se activa por: push a una rama (`branches`), pull request (`pull-requests`), tag, o manualmente (`custom`).
 - Un pipeline tiene **steps**; cada step es un contenedor limpio (a menos que uses `services` o compartas `artifacts` entre steps).
 - **Caches**: evitan reinstalar `vendor/`/`node_modules/` en cada corrida si no cambiaron.
-- **Artifacts**: pasan archivos generados en un step al siguiente step del mismo pipeline (no los usamos en este `bitbucket-pipelines.yml` — ver el cambio de estrategia sobre assets más abajo — pero es una pieza estándar de Bitbucket Pipelines que vale la pena conocer).
+- **Artifacts**: pasan archivos generados en un step al siguiente step del mismo pipeline (no los usamos en este `bitbucket-pipelines.yml`, pero es una pieza estándar de Bitbucket Pipelines que vale la pena conocer).
 - **Variables**: se configuran en Bitbucket (Repository settings → Repository variables, o Deployments → Environment variables), nunca en el YAML en texto plano. Las marcas como "Secured" no se muestran en los logs.
 - **Deployments**: Bitbucket tiene el concepto de "environments" (ej. `production`) que puedes usar para exigir aprobación manual antes de desplegar, y para ver el historial de qué se desplegó y cuándo.
 - **Branch permissions / merge checks**: en *Repository settings → Branch permissions* puedes exigir que `main` solo reciba cambios vía pull request (no push directo) y que la PR tenga "passing build" antes de poder mergear. Esto es lo que hace cumplir en la práctica el flujo "PR develop → main + CI en verde obligatorio" que quieres.
@@ -42,32 +44,29 @@ Lo que ya tenemos para validar en cada push, todo corrible desde la CLI:
 |---|---|
 | Tests (Pest, SQLite en memoria) | `php artisan test --compact` |
 | Estilo de código (Pint) | `vendor/bin/pint --test` |
-| Que `public/build/` esté al día con el fuente | `npm run build` + `git diff --exit-code -- public/build` |
 
-Ya no hay un chequeo de "build de assets para desplegar" — `npm run build` solo corre en CI para **verificar** que lo que ya comiteaste en `public/build/` es exactamente lo que el código fuente generaría, no para producir un artifact que viaje al deploy.
+No hay ningún step de Node/Vite en el pipeline — `public/build/` viaja comiteado en el repo (ver el cambio de estrategia sobre assets, arriba) y nadie en CI vuelve a compilarlo ni a verificarlo.
 
 Un detalle propio de este proyecto: `tequia/app` y `tequia/vault` son **path repositories** (`app-modules/*`), no paquetes de Packagist — pero como en CI se clona el repo completo (a diferencia del build de Docker, que copia por capas), `composer install` los resuelve sin configuración extra.
 
 ### `bitbucket-pipelines.yml`
 
-Ya está commiteado en la raíz del repo (no es solo un ejemplo de este doc). Resumen de su estructura — dos steps de CI (`tests` y `assets-up-to-date`) que corren en toda PR, y un tercer step de deploy que solo corre en `branches: main`:
+Ya está commiteado en la raíz del repo (no es solo un ejemplo de este doc). Resumen de su estructura — un step de CI (`tests`) que corre en toda PR, y un segundo step de deploy que solo corre en `branches: main`:
 
 ```yaml
 pipelines:
   pull-requests:
     '**':
       - step: *tests
-      - step: *assets-up-to-date
 
   branches:
     main:
       - step: *tests
-      - step: *assets-up-to-date
       - step:
           name: Desplegar a producción
           deployment: production
           script:
-            - pipe: atlassian/ssh-run:0.10.0
+            - pipe: atlassian/ssh-run:0.4.0
               variables:
                 SSH_USER: $DEPLOY_SSH_USER
                 SERVER: $DEPLOY_SSH_HOST
@@ -83,9 +82,9 @@ Notas:
 
 - La imagen `php:8.3-cli` no trae `intl`/`pdo_pgsql`, por eso se instalan en el step — igual que tuvimos que ajustar en el `Dockerfile`. Si esto se vuelve lento, puedes construir y publicar tu propia imagen base con esas extensiones ya compiladas, y usarla aquí en vez de `php:8.3-cli`.
 - El step de tests corre contra **SQLite en memoria** (ya configurado en `phpunit.xml`), no contra Postgres — no hace falta levantar un servicio de base de datos para correr Pest, lo cual mantiene el pipeline simple y rápido.
-- `assets-up-to-date` sí necesita Node (imagen `node:22`), pero **solo en CI** — nunca en el servidor. Si el diff falla, el mensaje te dice exactamente qué hacer: recompilar local y volver a comitear. Si en algún punto sientes que este step no aporta (por ejemplo, si nunca tocas el frontend), puedes borrarlo sin que nada más se rompa.
+- No hay ningún step con Node/Vite — nada en el pipeline toca `public/build/`, solo lo trae el `git pull` del deploy porque ya está comiteado.
 - `pull-requests: '**'` corre CI en cualquier PR (incluida `develop → main`) antes de que puedas aprobarla — combinado con un branch permission que exija "passing build", Bitbucket no te deja mergear si esto falla.
-- El pipeline de `branches: main` vuelve a correr CI sobre el commit de merge ya en `main` (no confía ciegamente en el resultado de la PR) y, si pasa, encadena el deploy: `git pull` trae el código **y** el `public/build/` ya comiteado, y `docker compose up -d --build` construye la imagen con eso — sin Node, sin registry, sin nada más en el servidor.
+- El pipeline de `branches: main` vuelve a correr CI sobre el commit de merge ya en `main` (no confía ciegamente en el resultado de la PR) y, si pasa, encadena el deploy: `git pull` trae el código **y** el `public/build/` ya comiteado, y `docker compose up -d --build` construye la imagen con eso — sin Node, sin registry, sin nada más en el servidor ni en el pipeline.
 - El step de deploy no tiene `trigger: manual`, así que se ejecuta automático apenas termina CI — esto coincide con lo que pediste ("al mergear a main, se despliega solo"). Si más adelante quieres un botón de confirmación antes de tocar producción, basta con agregar `trigger: manual` a ese step; con `deployment: production` puesto, Bitbucket igual te deja ver el historial de qué se desplegó y cuándo.
 - El pipe `atlassian/ssh-run` es uno de varios "pipes" oficiales de Bitbucket (bloques reutilizables) para tareas comunes como SSH, rsync, o deploy a un proveedor específico — evita reescribir ese código a mano.
 - El servidor necesita poder hacer `git pull origin main` sin pedir contraseña interactiva: configúrale su propia clave SSH (o un deploy key de solo lectura del repo) por separado de la clave que usa el pipeline para conectarse *a* él — son dos llaves distintas con dos propósitos distintos.
@@ -113,7 +112,7 @@ Ya resuelto (producción está viva en `https://cafe.tequia.dev`):
 
 - Servidor con Docker + Docker Compose, repo clonado en `/home/xenthrall/cafe-del-tiempo`.
 - `.env` del servidor con `APP_KEY`, credenciales de Postgres, `APP_URL` en HTTPS y `SESSION_SECURE_COOKIE=true` (ver [`docker-deploy.md`](docker-deploy.md)).
-- `bitbucket-pipelines.yml` commiteado en la raíz.
+- `bitbucket-pipelines.yml` commiteado en la raíz, con CI (`tests`, PHP puro) + CD por SSH.
 - `.gitignore` ya no excluye `public/build/` — lo comitas tú a mano tras compilar (`npm run build && git add public/build`).
 
 Falta, en orden, para que el pipeline corra de verdad:

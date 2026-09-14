@@ -3,7 +3,6 @@ image: php:8.3-cli
 definitions:
   caches:
     composer: vendor
-    npm: node_modules
   steps:
     - step: &tests
         name: Tests + estilo
@@ -18,26 +17,15 @@ definitions:
           - php artisan key:generate
           - vendor/bin/pint --test
           - php artisan test --compact
-    - step: &assets-up-to-date
-        name: Verificar que public/build está al día
-        image: node:22
-        caches:
-          - npm
-        script:
-          - npm ci
-          - npm run build
-          - git diff --exit-code -- public/build || (echo "public/build no coincide con el código fuente — recompílalo con 'npm run build' y vuelve a comitear." && exit 1)
 
 pipelines:
   pull-requests:
     '**':
       - step: *tests
-      - step: *assets-up-to-date
 
   branches:
     main:
       - step: *tests
-      - step: *assets-up-to-date
       - step:
           name: Desplegar a producción
           deployment: production
