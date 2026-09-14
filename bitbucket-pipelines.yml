@@ -1,0 +1,54 @@
+image: php:8.3-cli
+
+definitions:
+  caches:
+    composer: vendor
+    npm: node_modules
+  steps:
+    - step: &tests
+        name: Tests + estilo
+        caches:
+          - composer
+        script:
+          - apt-get update && apt-get install -y --no-install-recommends git unzip libicu-dev libzip-dev libpq-dev > /dev/null
+          - docker-php-ext-configure intl && docker-php-ext-install intl zip pdo_pgsql > /dev/null
+          - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          - composer install --no-interaction --prefer-dist
+          - cp .env.example .env
+          - php artisan key:generate
+          - vendor/bin/pint --test
+          - php artisan test --compact
+    - step: &assets-up-to-date
+        name: Verificar que public/build está al día
+        image: node:22
+        caches:
+          - npm
+        script:
+          - npm ci
+          - npm run build
+          - git diff --exit-code -- public/build || (echo "public/build no coincide con el código fuente — recompílalo con 'npm run build' y vuelve a comitear." && exit 1)
+
+pipelines:
+  pull-requests:
+    '**':
+      - step: *tests
+      - step: *assets-up-to-date
+
+  branches:
+    main:
+      - step: *tests
+      - step: *assets-up-to-date
+      - step:
+          name: Desplegar a producción
+          deployment: production
+          script:
+            - pipe: atlassian/ssh-run:0.10.0
+              variables:
+                SSH_USER: $DEPLOY_SSH_USER
+                SERVER: $DEPLOY_SSH_HOST
+                SSH_KEY: $DEPLOY_SSH_KEY
+                COMMAND: |
+                  cd /home/xenthrall/cafe-del-tiempo &&
+                  git pull origin main &&
+                  sudo docker compose up -d --build &&
+                  sudo docker compose exec -T app php artisan migrate --force

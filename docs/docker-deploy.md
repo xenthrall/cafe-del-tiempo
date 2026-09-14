@@ -15,7 +15,7 @@ Todo el código de la aplicación corre **dentro de contenedores** — PHP, las 
   ```
 - **Git**, para clonar y actualizar el repositorio.
 
-No hace falta instalar PHP, Composer ni Node en el servidor — ni siquiera para compilar los assets del frontend (ver paso 4, se hace con un contenedor Node desechable).
+No hace falta instalar PHP, Composer ni Node en el servidor. Los assets del frontend (`public/build/`) tampoco se compilan aquí — se compilan en tu máquina y se comitean al repo (ver paso 4), así que el servidor ni siquiera necesita un contenedor Node desechable.
 
 ## Paso a paso
 
@@ -61,17 +61,17 @@ Copia el valor que imprime y ponlo en `.env`:
 APP_KEY=base64:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
 ```
 
-### 4. Compilar los assets del frontend (Vite)
+### 4. Verificar que `public/build/` esté presente
 
-`public/build/` está en `.gitignore` — no viaja con el `git clone`. El `Dockerfile` de este proyecto **no compila los assets**, espera encontrarlos ya generados en `public/build/` antes de construir la imagen (los copia tal cual con `COPY . .`). Si te saltas este paso, la app arranca pero cualquier página tira `ViteException: Unable to locate file in Vite manifest`.
+El `Dockerfile` de este proyecto **no compila los assets**, espera encontrarlos ya generados en `public/build/` antes de construir la imagen (los copia tal cual con `COPY . .`). Si no están, la app arranca pero cualquier página tira `ViteException: Unable to locate file in Vite manifest`.
 
-Como el servidor no tiene Node instalado, se compila con un contenedor Node desechable, montando el proyecto:
+`public/build/` **se compila en tu máquina de desarrollo y se comitea al repo** (`npm run build && git add public/build`) — no en el servidor. Como ya viaja con el `git clone`/`git pull`, en este paso no hay nada que ejecutar: solo confirma que la carpeta existe.
 
 ```bash
-docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm ci && npm run build"
+ls public/build/manifest.json
 ```
 
-Esto deja `public/build/` listo en el host, con el dueño de los archivos como `root` (por correr dentro del contenedor) — no afecta el build de la imagen, solo tenlo presente si luego quieres borrar esos archivos a mano (`sudo rm -rf public/build` si hace falta).
+Si no aparece, es que el commit que trajiste no incluye los assets compilados — vuelve a la máquina donde desarrollas, corre `npm run build`, comitea `public/build/` y haz `git pull` de nuevo en el servidor.
 
 ### 5. Construir las imágenes
 
@@ -153,12 +153,11 @@ Una vez que el stack ya está arriba, actualizar el código es repetir el mismo 
 ```bash
 cd ~/cafe-del-tiempo
 git pull origin main
-docker run --rm -v "$PWD":/app -w /app node:22 sh -c "npm ci && npm run build"
 docker compose up -d --build
 docker compose exec app php artisan migrate --force
 ```
 
-Este es, a mano, el mismo flujo que después va a ejecutar el pipeline de CD (ver [`ci-cd.md`](ci-cd.md)) — la diferencia es que ahí no hace falta el paso de Node porque el `bitbucket-pipelines.yml` sube los assets ya compilados como `artifact` antes de llegar al deploy. Aquí, a mano, hay que compilarlos en el servidor porque nadie más lo hizo antes.
+`git pull` trae el código **y** el `public/build/` ya compilado y comiteado — no hay nada que compilar en el servidor. Este es, a mano, exactamente el mismo flujo que ejecuta el pipeline de CD (ver [`ci-cd.md`](ci-cd.md)).
 
 ## Comandos útiles del día a día
 
@@ -173,7 +172,7 @@ Este es, a mano, el mismo flujo que después va a ejecutar el pipeline de CD (ve
 
 ## Problemas comunes
 
-- **`ViteException: Unable to locate file in Vite manifest`**: te saltaste el paso 4, o lo corriste y luego reconstruiste la imagen sin volver a compilar. `public/build/` debe existir *antes* de `docker compose build`.
+- **`ViteException: Unable to locate file in Vite manifest`**: `public/build/` no está presente en el checkout — significa que el commit que trajiste no lo incluye. Compílalo en tu máquina (`npm run build`), comitéalo, y vuelve a hacer `git pull` en el servidor antes de reconstruir.
 - **El contenedor `postgres` nunca queda "healthy"** y `app`/`queue`/`scheduler` se quedan esperando: revisa que `DB_PASSWORD` en `.env` no esté vacío — el `healthcheck` corre `pg_isready` con esas credenciales.
 - **`php artisan key:generate` falla con permiso denegado dentro del contenedor**: es el problema de permisos mencionado en el paso 3 (el archivo `.env` del host no es escribible por `www-data` dentro del contenedor). Usa el método de `openssl` en su lugar.
 - **El `.env` de Docker se pisa con el de desarrollo local (o viceversa)**: si alguna vez corres `php artisan serve` en el mismo checkout donde también usas Docker, van a pelear por el mismo `.env` (SQLite vs Postgres). Mantenlos en checkouts/carpetas separadas — esto no debería pasar en el servidor de producción, solo es un riesgo si trabajas en el mismo repo en tu máquina local.
@@ -184,4 +183,4 @@ Este es, a mano, el mismo flujo que después va a ejecutar el pipeline de CD (ve
 
 1. **Reverse proxy + dominio + TLS** delante del puerto `9000` (Nginx/Caddy en el host, o Traefik) — hoy se accede directo por IP:puerto en HTTP plano.
 2. **Backups de Postgres y del volumen `app_storage`** — no cubierto aquí ni en `vision.md` todavía.
-3. **Automatizar todo esto** con Bitbucket Pipelines una vez el flujo manual esté probado — ver [`ci-cd.md`](ci-cd.md).
+3. **Automatizar todo esto** con Bitbucket Pipelines — el `bitbucket-pipelines.yml` ya está commiteado, falta terminar de configurarlo del lado de Bitbucket (variables, branch permissions) y resolver que `docker compose` no necesite `sudo` en el servidor — ver [`ci-cd.md`](ci-cd.md).
