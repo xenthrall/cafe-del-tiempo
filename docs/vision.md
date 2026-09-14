@@ -2,7 +2,7 @@
 
 Este archivo es el espacio de trabajo donde se debate y aterriza la idea del proyecto: qué es, qué no es, y en qué orden se va a construir. A diferencia del README, aquí sí se vale pensar en voz alta, dejar opciones abiertas y contradecirse mientras se decide. Cuando algo se cierre de verdad, se mueve a "Decidido" (o al README si es lo suficientemente estable).
 
-Última actualización: 2026-09-04.
+Última actualización: 2026-09-13.
 
 ## MVP (decidido)
 
@@ -23,15 +23,17 @@ Café del Tiempo es la idea de una bóveda digital privada, auto-alojada, para p
 
 Nada de esto está resuelto. Se van tachando o moviendo a "Decidido" a medida que se converse:
 
-- **Cifrado**: en discusión activa — ver la sección dedicada [Cifrado — opciones para decidir](#cifrado--opciones-para-decidir) más abajo.
-- **Modelo de datos**: pausado a propósito. Antes de definir si son ítems genéricos con "tipo" o entidades separadas por tipo, hace falta plantear y explorar ideas de cómo se organiza la bóveda (categorías, favoritos, carpetas, etiquetas, etc.). No es prioridad todavía.
 - **Protocolo de emergencia y rescate**: pausado a propósito, se retoma al final. No es prioridad ahora mismo — no diseñar nada sobre esto todavía aunque siga dentro del alcance declarado del MVP.
 - **Estrategia de backup/recuperación de datos** (dentro del alcance, mecanismo por definir): cómo se generan respaldos seguros (exportación cifrada, snapshots de la base de datos, backups a almacenamiento externo/offline) para que un daño del servidor o pérdida de la máquina no signifique perder la bóveda. ¿Backup manual, automático, o ambos? ¿Dónde vive el respaldo si el proyecto es "sin intermediarios" (implica que no dependa de un tercero por defecto, aunque se podría permitir como opción del usuario)?
 - **Cápsulas del tiempo y otras ideas futuras**: quedan fuera del MVP (ver arriba) — pendiente decidir si se retoman después o se descartan del todo.
 
-## Cifrado — opciones para decidir
+## Cifrado (decidido) — zero-knowledge real en cliente
 
-Esta es la decisión más importante y más urgente del proyecto: condiciona el modelo de datos, el frontend, los backups y qué tan cierto es realmente llamar "caja fuerte" a la bóveda. La pregunta de fondo no es "¿qué algoritmo usar?" (eso ya está resuelto por la industria: AES-256-GCM para cifrar, Argon2id para derivar claves de una contraseña). La pregunta real es **¿quién puede descifrar los datos, y en qué escenario de ataque siguen protegidos?**
+**Decisión: Opción C.** Todo el cifrado y descifrado de los ítems de la bóveda ocurre en el cliente (navegador), con una clave derivada de la contraseña maestra vía Argon2id que nunca sale del cliente, y AES-256-GCM para cifrar. El servidor solo almacena y transporta blobs cifrados — nunca ve la contraseña maestra ni el texto plano, ni siquiera bajo un ataque activo al proceso del servidor.
+
+Esto implica construir vistas propias para los ítems de la bóveda, fuera del CRUD server-rendered estándar de Filament. No es una desventaja a resolver ni un problema de encaje con Filament — es simplemente el costo de hacer zero-knowledge real, y se construirá como una experiencia custom y elegante, no como un parche.
+
+Queda documentada abajo la comparación completa contra las otras dos opciones, como referencia de por qué se descartaron.
 
 Hay tres modelos posibles, de menos a más soberano/seguro. No son solo teóricos — cada uno corresponde a productos reales que existen hoy.
 
@@ -67,9 +69,9 @@ Todo el cifrado y descifrado ocurre en el navegador (WebCrypto o una librería c
 - **Desventajas**: exige construir vistas propias (fuera del CRUD server-rendered estándar) para los ítems de la bóveda, sea en Filament hoy o en cualquier otro cliente después — es un costo inherente a hacer zero-knowledge de verdad, no un problema específico de Filament. También complica el reseteo de contraseña maestra: si la pierdes sin una clave de recuperación guardada aparte, los datos son irrecuperables por diseño (esto conecta directo con la futura decisión de protocolo de emergencia, que dejamos pausada). Es notablemente más trabajo de implementación, y ese esquema de cifrado debe quedar bien documentado como un "protocolo" versionado (parámetros exactos de Argon2id, formato del blob cifrado, etc.) para que cualquier cliente futuro lo implemente igual — no puede quedar como lógica ad-hoc atada a un solo frontend.
 - **Nivel de seguridad real hoy**: es el techo actual de lo que existe en la industria para este tipo de producto. Argon2id + AES-256-GCM en cliente es exactamente lo que usan los líderes del sector en 2025-2026. Caso real que ilustra por qué importa: la brecha de LastPass de 2022 expuso bóvedas cifradas robadas del backend — los atacantes no pudieron descifrar los ítems bien protegidos, pero sí pudieron ver metadatos que LastPass dejaba sin cifrar (URLs de sitios, por ejemplo). La lección no es solo "cifra en cliente", sino "cifra *todo* el campo, no solo lo obvio", sea cual sea la opción que se elija.
 
-### Implicación arquitectónica si se elige la Opción C
+### Implicación arquitectónica (backend como almacén de blobs)
 
-Si el backend en algún momento va a tener más de un cliente, tiene sentido tratarlo desde ya como una **API que solo mueve blobs cifrados** — el panel Filament actual sería simplemente el primer consumidor de esa API (aunque hoy viva en el mismo proceso Laravel, sin necesidad de una API HTTP separada todavía). Eso implica documentar el esquema de cifrado como protocolo propio, no como detalle de implementación de una sola pantalla — mismo formato de blob, mismos parámetros de KDF, para que cualquier cliente futuro sea compatible sin adivinar cómo lo hizo el primero.
+Dado que puede haber más de un cliente en el futuro, el backend se trata desde ya como una **API que solo mueve blobs cifrados** — el panel Filament actual sería simplemente el primer consumidor de esa API (aunque hoy viva en el mismo proceso Laravel, sin necesidad de una API HTTP separada todavía). Eso implica documentar el esquema de cifrado como protocolo propio, no como detalle de implementación de una sola pantalla — mismo formato de blob, mismos parámetros de KDF, para que cualquier cliente futuro sea compatible sin adivinar cómo lo hizo el primero.
 
 ### Comparación rápida
 
@@ -82,7 +84,28 @@ Si el backend en algún momento va a tener más de un cliente, tiene sentido tra
 | Complejidad de implementación | Baja | Media | Alta |
 | Es lo que usan los gestores de contraseñas serios hoy | No | Parcial | Sí |
 
-Dado que la prioridad explícita es "el mecanismo más seguro posible, de verdad una caja fuerte" y que Filament no es una restricción permanente, la Opción C es la que responde a eso sin condiciones — las otras dos siguen dependiendo de confiar en el servidor, lo cual choca con "soberano" en su sentido más estricto. El costo real de la Opción C es tiempo de desarrollo, no arquitectura: hay que construir el cifrado en el cliente y tratar el backend como un almacén de blobs. Sigue siendo tu decisión final — pero con este criterio, la balanza pesa claramente hacia C.
+Dado que la prioridad explícita es "el mecanismo más seguro posible, de verdad una caja fuerte" y que Filament no es una restricción permanente, la Opción C es la que responde a eso sin condiciones — las otras dos siguen dependiendo de confiar en el servidor, lo cual choca con "soberano" en su sentido más estricto. El costo real de la Opción C es tiempo de desarrollo, no arquitectura: hay que construir el cifrado en el cliente y tratar el backend como un almacén de blobs. Decisión cerrada: Opción C.
+
+## Modelo de datos (decidido)
+
+Con la Opción C ya decidida, el servidor nunca ve el contenido de un ítem — solo blobs cifrados. Eso cambia la pregunta: no es "¿qué columnas necesita un ítem?" sino "¿qué puede vivir en la base de datos en texto plano sin romper zero-knowledge, y qué debe viajar dentro del blob cifrado?". Esa distinción es el eje de todo lo que sigue.
+
+### Decidido
+
+- **Ítems: una sola entidad genérica**, no entidades separadas por tipo. `vault_items` con `id`, `type` en texto plano (enum: password, note, recovery_code, ...), `folder_id` (nullable), `encrypted_payload` (el blob — JSON cifrado con el resto de campos del ítem), `payload_schema_version` (para evolucionar el formato del blob sin romper ítems viejos), timestamps. Como el servidor nunca interpreta el contenido, modelar relacionalmente campos específicos por tipo no aporta nada — el servidor no puede validarlos ni indexarlos de todas formas. Es el mismo enfoque que Bitwarden/Vaultwarden con su entidad "cipher".
+- **Etiquetas**: cifradas, embebidas como array dentro de `encrypted_payload` del ítem — sin tabla `tags` separada por ahora. El servidor nunca ve nombres de etiquetas. "Todas mis etiquetas" se resuelve en el cliente, agregando sobre los ítems ya descifrados en la sesión activa (viable en un vault single-user, no masivo). Si algún día hace falta autocompletar/reusar etiquetas de forma más sofisticada entre muchos ítems, se puede migrar a una tabla propia — no bloquea nada del MVP empezar así.
+- **Carpetas**: `vault_folders` con `id` + `encrypted_name` cifrado (consistente con la lección de LastPass de abajo: ni el nombre de una carpeta debe quedar en plano) y `vault_items.folder_id` como FK en plano — el ID no revela contenido, solo estructura de agrupación. El campo de ícono para personalizarlas (p. ej. ícono de GitHub o de un servidor) se pospone, queda anotado como mejora futura.
+- **Favoritos**: `is_favorite` en texto plano sobre `vault_items`. No expone contenido — como mucho revela qué ítems se usan más — y evita tener que descifrar todo el vault solo para filtrar favoritos.
+- **Papelera / soft delete**: sí — los ítems eliminados no se borran de inmediato, `vault_items` usa `deleted_at`.
+- **Adjuntos**: fuera del MVP. La visión general menciona "documentos", pero por ahora el alcance es credenciales/notas/códigos; adjuntos se retoma más adelante.
+- **Historial de versiones de un ítem**: sí — se conserva el valor anterior al editar (útil para ver una contraseña rotada, por ejemplo). Modelo por definir: probablemente `vault_item_versions` con un snapshot del `encrypted_payload` cifrado por versión.
+- **Búsqueda y listados**: el cliente descarga los ítems de la sesión activa y busca/filtra en memoria ya descifrados (modelo Bitwarden). No se construye índice cifrado searchable (blind index / HMAC determinístico) para el MVP — es complejidad que un vault single-user no necesita todavía; si el volumen de ítems lo justifica más adelante, se reevalúa.
+
+Criterio detrás de estas cuatro últimas decisiones: al ser single-user por instancia, no hace falta la complejidad que sí tendría sentido en un producto multi-tenant (tablas de catálogo compartidas, índices searchable, etc.) — se elige lo más simple que no rompa zero-knowledge.
+
+### La lección de LastPass aplica aquí
+
+LastPass dejó metadatos (URLs) sin cifrar y eso fue lo que se filtró en su brecha de 2022. Cualquier campo que termine en plano en este modelo —nombre de carpeta, etiqueta, título del ítem, URL asociada— es candidato a fuga de metadata. Es el criterio que guió cada decisión "plano vs cifrado" de arriba.
 
 ## Ideas en exploración
 
@@ -96,7 +119,9 @@ Espacio libre para anotar ideas sueltas sin comprometerse a nada. (Vacío por ah
 - **2026-09-04 — Alcance ampliado del MVP**: además de guardar datos, el MVP debe contemplar (aunque el diseño exacto siga abierto, ver arriba) un protocolo de emergencia/rescate y una estrategia de backup/recuperación ante daño o pérdida del servidor. No es opcional dejarlo para después: una caja fuerte sin forma de recuperarse ante un desastre no cumple su propósito.
 - **2026-09-04 — Autenticación (por ahora)**: se mantiene el login estándar de Filament sin cambios. 2FA/passkeys/clave maestra adicional quedan para más adelante, no es foco ahora mismo.
 - **2026-09-04 — Convención de módulos**: `vault` será un paquete/módulo nuevo y separado de `app`, ya que `app` es exclusivamente la capa de panel/UI (Filament) y no debe contener lógica de dominio. Toda la lógica de la bóveda (modelos, migraciones, cifrado, resources de Filament propios) vive en `app-modules/vault`.
+- **2026-09-13 — Cifrado**: Opción C — zero-knowledge real en el cliente (Argon2id + AES-256-GCM, cifrado/descifrado en el navegador). El servidor solo almacena y transporta blobs cifrados. Implica construir vistas propias para los ítems de la bóveda (fuera del CRUD estándar de Filament); no es un obstáculo sino el costo esperado de hacerlo bien — se construirá una experiencia custom y elegante. Ver [Cifrado (decidido) — zero-knowledge real en cliente](#cifrado-decidido--zero-knowledge-real-en-cliente).
+- **2026-09-13 — Modelo de datos**: entidad genérica `vault_items` (`type` en plano, `folder_id`, `is_favorite` en plano, `encrypted_payload`, `payload_schema_version`). Etiquetas cifradas embebidas en el payload (sin tabla propia por ahora). Carpetas en `vault_folders` con `encrypted_name` cifrado y `folder_id` en plano como FK; el ícono de carpeta se pospone. Papelera vía soft delete. Historial de versiones por ítem (`vault_item_versions`, por definir en detalle). Adjuntos fuera del MVP. Búsqueda/listados resueltos en el cliente sobre ítems ya descifrados en la sesión activa, sin índice searchable. Ver [Modelo de datos (decidido)](#modelo-de-datos-decidido).
 
 ## Roadmap
 
-Sin fases ni fechas todavía — depende de que se cierren las preguntas abiertas de arriba, sobre todo alcance del MVP y estrategia de cifrado.
+Sin fases ni fechas todavía, pero con cifrado y modelo de datos ya decididos ya hay base suficiente para empezar a construir el módulo `vault` (migraciones, modelos, protocolo de cifrado en cliente). Las preguntas que quedan abiertas (protocolo de emergencia, backups, cápsulas del tiempo) siguen pausadas a propósito y no bloquean arrancar.
