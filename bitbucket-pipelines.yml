@@ -7,14 +7,11 @@ definitions:
   steps:
     # CI - Tests automatizados
     #
-    # Este step está preparado pero NO se ejecuta actualmente.
-    # Se mantiene definido para poder activarlo posteriormente.
+    # DESHABILITADO TEMPORALMENTE para ahorrar los minutos disponibles
+    # de Bitbucket Pipelines mientras se configura y prueba el pipeline.
     #
-    # Al activarlo en "pull-requests", los tests consumirán minutos
-    # de Bitbucket Pipelines. Actualmente se encuentra deshabilitado
-    # para conservar los 50 minutos mensuales disponibles.
-    #
-    # Para activarlo:
+    # Para activar los tests automáticamente en cada Pull Request,
+    # eliminar los '#' de las siguientes líneas:
     #
     # pull-requests:
     #   '**':
@@ -39,31 +36,24 @@ pipelines:
 
   # CI - Pull Requests
   #
-  # DESHABILITADO TEMPORALMENTE:
-  # Los tests están definidos arriba, pero no se ejecutan automáticamente
-  # para evitar consumir los minutos mensuales de Bitbucket Pipelines.
+  # DESHABILITADO TEMPORALMENTE para ahorrar minutos de Bitbucket.
   #
-  # Para habilitar CI posteriormente, descomentar:
+  # Para activarlo posteriormente:
   #
   # pull-requests:
   #   '**':
   #     - step: *tests
 
-  branches:
-    main:
-
-      # CD - Deploy a producción
-      #
-      # El despliegue es MANUAL intencionalmente.
-      # Al hacer push a main, Bitbucket prepara el pipeline pero espera
-      # confirmación manual antes de conectarse al VPS y desplegar.
-      #
-      # Esto permite revisar el pipeline antes de modificar producción.
+  # CD - Deploy a producción
+  #
+  # Pipeline manual ejecutado desde la interfaz de Bitbucket.
+  #
+  # No se ejecuta automáticamente al hacer push a main.
+  custom:
+    deploy-production:
       - step:
-          name: Desplegar a producción (Manual)
+          name: Desplegar a producción
           deployment: production
-          trigger: manual
-
           script:
             - pipe: atlassian/ssh-run:0.4.0
               variables:
