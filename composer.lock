@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b07b3a569fee309bbdf34da0fbfeb3c4",
+    "content-hash": "cca06e29317e544b7bc42b8f6a180801",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -9442,6 +9442,39 @@
             "license": [
                 "MIT"
             ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "tequia/vault",
+            "version": "1.0",
+            "dist": {
+                "type": "path",
+                "url": "app-modules/vault",
+                "reference": "6d571748477c2423211e59b384a01fcc5487af00"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Tequia\\Vault\\Providers\\VaultServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Tequia\\Vault\\": "src/",
+                    "Tequia\\Vault\\Tests\\": "tests/",
+                    "Tequia\\Vault\\Database\\Factories\\": "database/factories/",
+                    "Tequia\\Vault\\Database\\Seeders\\": "database/seeders/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Core vault domain module for Café del Tiempo providing secure storage and encryption logic",
             "transport-options": {
                 "symlink": true,
                 "relative": true

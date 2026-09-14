@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,6 +18,14 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
  // ->use(RefreshDatabase::class)
     ->in('Feature');
+
+// Pest only discovers a Pest.php inside the "tests" directory tree, so module tests
+// (app-modules/{module}/tests) are bound here instead of in a Pest.php of their own,
+// which Pest would silently ignore.
+
+pest()->extend(TestCase::class)
+    ->use(LazilyRefreshDatabase::class)
+    ->in('../app-modules/*/tests/Feature');
 
 /*
 |--------------------------------------------------------------------------
