@@ -1,11 +1,12 @@
-# Este compose usa .env.docker (no .env) tanto para inyectar variables a los
-# contenedores como para interpolar ${DB_DATABASE}/${DB_USERNAME}/${DB_PASSWORD}
-# en este mismo archivo. Docker Compose solo lee un archivo `.env` automático
-# para interpolación, así que TODO comando debe pasar el flag explícito:
+# Este compose usa .env (el archivo que Docker Compose lee automáticamente
+# para inyectar variables a los contenedores y para interpolar
+# ${DB_DATABASE}/${DB_USERNAME}/${DB_PASSWORD} en este mismo archivo) — no
+# hace falta pasar --env-file en ningún comando.
 #
-#   docker compose --env-file .env.docker up -d --build
-#
-# Copia .env.docker.example a .env.docker antes de la primera vez.
+# Copia .env.docker.example a .env antes de la primera vez. Este .env es el
+# del servidor/host de Docker, distinto del que usarías en tu máquina para
+# desarrollo local con `php artisan serve` (ver .env.example) — no corras
+# ambos flujos en el mismo checkout del repo.
 
 services:
   app:
@@ -16,9 +17,9 @@ services:
     container_name: cafe-del-tiempo_app
     restart: always
     env_file:
-      - .env.docker
+      - .env
     volumes:
-      - ./.env.docker:/var/www/html/.env
+      - ./.env:/var/www/html/.env
       - app_storage:/var/www/html/storage
       - ./docker/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
       - ./docker/php-production.ini:/usr/local/etc/php/conf.d/zz-production.ini:ro
@@ -70,9 +71,9 @@ services:
     restart: always
     command: php artisan queue:work --tries=3 --timeout=90 --sleep=3 --max-time=3600
     env_file:
-      - .env.docker
+      - .env
     volumes:
-      - ./.env.docker:/var/www/html/.env
+      - ./.env:/var/www/html/.env
       - app_storage:/var/www/html/storage
     depends_on:
       postgres:
@@ -92,9 +93,9 @@ services:
     init: true
     command: php artisan schedule:work
     env_file:
-      - .env.docker
+      - .env
     volumes:
-      - ./.env.docker:/var/www/html/.env
+      - ./.env:/var/www/html/.env
       - app_storage:/var/www/html/storage
     depends_on:
       postgres:
