@@ -3,14 +3,31 @@ image: php:8.3-cli
 definitions:
   caches:
     composer: vendor
+
   steps:
+    # CI - Tests automatizados
+    #
+    # Este step está preparado pero NO se ejecuta actualmente.
+    # Se mantiene definido para poder activarlo posteriormente.
+    #
+    # Al activarlo en "pull-requests", los tests consumirán minutos
+    # de Bitbucket Pipelines. Actualmente se encuentra deshabilitado
+    # para conservar los 50 minutos mensuales disponibles.
+    #
+    # Para activarlo:
+    #
+    # pull-requests:
+    #   '**':
+    #     - step: *tests
+    #
     - step: &tests
-        name: Tests + estilo
+        name: Tests
         caches:
           - composer
         script:
           - apt-get update && apt-get install -y --no-install-recommends git unzip libicu-dev libzip-dev libpq-dev > /dev/null
-          - docker-php-ext-configure intl && docker-php-ext-install intl zip pdo_pgsql > /dev/null
+          - docker-php-ext-configure intl
+          - docker-php-ext-install intl zip pdo_pgsql > /dev/null
           - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
           - composer install --no-interaction --prefer-dist
           - cp .env.example .env
@@ -19,16 +36,34 @@ definitions:
           - php artisan test --compact
 
 pipelines:
-  pull-requests:
-    '**':
-      - step: *tests
+
+  # CI - Pull Requests
+  #
+  # DESHABILITADO TEMPORALMENTE:
+  # Los tests están definidos arriba, pero no se ejecutan automáticamente
+  # para evitar consumir los minutos mensuales de Bitbucket Pipelines.
+  #
+  # Para habilitar CI posteriormente, descomentar:
+  #
+  # pull-requests:
+  #   '**':
+  #     - step: *tests
 
   branches:
     main:
-      - step: *tests
+
+      # CD - Deploy a producción
+      #
+      # El despliegue es MANUAL intencionalmente.
+      # Al hacer push a main, Bitbucket prepara el pipeline pero espera
+      # confirmación manual antes de conectarse al VPS y desplegar.
+      #
+      # Esto permite revisar el pipeline antes de modificar producción.
       - step:
-          name: Desplegar a producción
+          name: Desplegar a producción (Manual)
           deployment: production
+          trigger: manual
+
           script:
             - pipe: atlassian/ssh-run:0.4.0
               variables:
