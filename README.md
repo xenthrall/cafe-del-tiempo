@@ -1,8 +1,8 @@
 # ☕ Café del Tiempo
 
-> Bóveda digital privada para proteger, preservar y recuperar la información que más importa.
+> Plataforma personal auto-alojada para preservar y gestionar la información que más importa, construida como módulos independientes.
 
-**Estado: idea en fase de diseño y desarrollo temprano.** El alcance y la arquitectura de producto todavía se están definiendo — ver [`docs/vision.md`](docs/vision.md).
+**Estado: idea en fase de diseño y desarrollo temprano.** El primer módulo es una bóveda de credenciales (`vault`); ya hay un segundo módulo en planteamiento, finanzas personales (`finance`). El alcance y la arquitectura de producto todavía se están definiendo — ver [`docs/vision.md`](docs/vision.md) (visión general y roadmap por módulo), [`docs/vault.md`](docs/vault.md) y [`docs/finance.md`](docs/finance.md).
 
 ## Stack
 

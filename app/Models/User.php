@@ -20,7 +20,7 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     /**
-     * Sin roles/multi-tenant todavía (vault de un solo usuario, ver
+     * Sin roles/multi-tenant todavía (instancia de un solo usuario, ver
      * docs/vision.md) — cualquier usuario autenticado puede entrar al panel.
      * Sin esto, Filament bloquea el acceso con 403 fuera de `local`.
      */

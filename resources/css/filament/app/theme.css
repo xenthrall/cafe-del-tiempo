@@ -5,6 +5,10 @@
 
 @source "../../../../app-modules/vault/src/**/*";
 @source "../../../../app-modules/vault/resources/views/**/*";
+
+@source "../../../../app-modules/finance/src/**/*";
+@source "../../../../app-modules/finance/resources/views/**/*";
+
 /*
 /*
 |--------------------------------------------------------------------------

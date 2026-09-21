@@ -4,8 +4,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>{{ config('app.name', 'Café del Tiempo') }} — Bóveda Digital Privada</title>
-        <meta name="description" content="Una bóveda digital privada y auto-alojada para proteger, preservar y recuperar la información que más importa.">
+        <title>{{ config('app.name', 'Café del Tiempo') }} — Suite Personal Auto-Alojada</title>
+        <meta name="description" content="Una suite personal y auto-alojada que crece con el tiempo: hoy incluye una bóveda digital privada y un módulo de finanzas personales, con más herramientas por venir.">
 
         @fonts
 
@@ -26,28 +26,31 @@
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <!-- Logo & Brand -->
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group">
-                    <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-sm shadow-amber-900/20 group-hover:scale-105 transition-transform duration-200">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <!-- Coffee cup with steam/clock symbol -->
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 1v3M10 1v3M14 1v3" />
-                        </svg>
-                    </span>
+                    <img
+                        src="{{ asset('images/icon-light.png') }}"
+                        alt=""
+                        class="w-10 h-10 dark:hidden group-hover:scale-105 transition-transform duration-200"
+                    >
+                    <img
+                        src="{{ asset('images/icon-dark.png') }}"
+                        alt=""
+                        class="hidden w-10 h-10 dark:block group-hover:scale-105 transition-transform duration-200"
+                    >
                     <div class="flex flex-col">
                         <span class="font-semibold text-base tracking-tight text-stone-900 dark:text-stone-100 group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
                             {{ config('app.name', 'Café del Tiempo') }}
                         </span>
                         <span class="text-[11px] text-stone-500 dark:text-stone-400 font-normal">
-                            Bóveda Digital Privada
+                            Suite Personal
                         </span>
                     </div>
                 </a>
 
                 <!-- Nav Links -->
                 <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-stone-600 dark:text-stone-300">
+                    <a href="#modulos" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">Módulos</a>
                     <a href="#boveda" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">Bóveda</a>
-                    <a href="#capsulas" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">Cápsulas</a>
-                    <a href="#seguridad" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">Seguridad</a>
+                    <a href="#finanzas" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">Finanzas</a>
                     <a href="#filosofia" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">Filosofía</a>
                 </nav>
 
@@ -65,39 +68,27 @@
                         <span>GitHub</span>
                     </a>
 
-                    @if (Route::has('login'))
-                        @auth
-                            <a
-                                href="{{ url('/dashboard') }}"
-                                class="inline-flex items-center px-4 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-600 dark:hover:bg-amber-500 font-medium text-xs sm:text-sm shadow-sm transition-all"
-                            >
-                                Dashboard
-                            </a>
-                        @else
-                            <a
-                                href="{{ route('login') }}"
-                                class="inline-flex items-center px-3 py-1.5 rounded-lg text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white font-medium text-xs sm:text-sm transition-colors"
-                            >
-                                Iniciar sesión
-                            </a>
-
-                            @if (Route::has('register'))
-                                <a
-                                    href="{{ route('register') }}"
-                                    class="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs sm:text-sm shadow-sm transition-all"
-                                >
-                                    Crear Bóveda
-                                </a>
-                            @endif
-                        @endauth
+                    @auth
+                        <a
+                            href="{{ route('filament.app.pages.dashboard') }}"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-600 dark:hover:bg-amber-500 font-medium text-xs sm:text-sm shadow-sm transition-all"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span>Ir al panel</span>
+                        </a>
                     @else
                         <a
-                            href="#empezar"
-                            class="inline-flex items-center px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs sm:text-sm shadow-sm transition-all"
+                            href="{{ route('filament.app.auth.login') }}"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs sm:text-sm shadow-sm transition-all"
                         >
-                            Comenzar
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span>Iniciar sesión</span>
                         </a>
-                    @endif
+                    @endauth
                 </div>
             </div>
         </header>
@@ -110,7 +101,7 @@
                 <!-- Badge -->
                 <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-amber-300/60 dark:border-amber-700/50 bg-amber-50/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs font-medium mb-6 backdrop-blur-sm shadow-xs">
                     <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span>Bóveda Digital Privada &bull; Cero Conocimiento</span>
+                    <span>Suite Personal Auto-Alojada &bull; Módulos en constante crecimiento</span>
                 </div>
 
                 <!-- Main Heading -->
@@ -120,20 +111,32 @@
 
                 <!-- Subtitle -->
                 <p class="text-base sm:text-lg text-stone-600 dark:text-stone-300 max-w-2xl leading-relaxed mb-8">
-                    Un santuario digital privado, seguro y auto-alojado para resguardar tus contraseñas, secretos, reflexiones y cápsulas del tiempo con la serenidad de una buena taza de café.
+                    Un espacio digital privado, seguro y auto-alojado, organizado en módulos: hoy una bóveda para tus contraseñas y secretos, y un módulo de finanzas para tus cuentas y movimientos. Con el tiempo, más herramientas se irán sumando, creando poco a poco un espacio propio, tranquilo y duradero.
                 </p>
 
                 <!-- CTA Group -->
                 <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <a
-                        href="#boveda"
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-600 dark:hover:bg-amber-500 font-medium text-sm shadow-md shadow-stone-900/10 hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-                    >
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                        <span>Explorar la Bóveda</span>
-                    </a>
+                    @auth
+                        <a
+                            href="{{ route('filament.app.pages.dashboard') }}"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-600 dark:hover:bg-amber-500 font-medium text-sm shadow-md shadow-stone-900/10 hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span>Ir a mi Bóveda</span>
+                        </a>
+                    @else
+                        <a
+                            href="{{ route('filament.app.auth.login') }}"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-600 dark:hover:bg-amber-500 font-medium text-sm shadow-md shadow-stone-900/10 hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span>Entrar a la Bóveda</span>
+                        </a>
+                    @endauth
 
                     <a
                         href="#empezar"
@@ -162,9 +165,9 @@
                     </span>
                     <span class="flex items-center gap-1.5">
                         <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10M4 18h10" />
                         </svg>
-                        Cápsulas Temporales
+                        Múltiples Módulos
                     </span>
                     <span class="flex items-center gap-1.5">
                         <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -176,8 +179,81 @@
                 </div>
             </section>
 
+            <!-- Modules Overview -->
+            <section id="modulos" class="flex flex-col gap-10">
+                <div class="text-center max-w-2xl mx-auto">
+                    <span class="text-amber-700 dark:text-amber-400 text-xs font-semibold uppercase tracking-wider">
+                        Una suite, muchos módulos
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 dark:text-stone-100 tracking-tight mt-1">
+                        Café del Tiempo crece contigo
+                    </h2>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 mt-2">
+                        No es una sola herramienta: es una plataforma personal donde cada módulo resuelve una necesidad distinta, todo bajo el mismo techo auto-alojado.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Bóveda module card -->
+                    <a href="#boveda" class="group flex flex-col gap-3 p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 hover:border-amber-300 dark:hover:border-amber-700 transition-all">
+                        <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">Bóveda Digital</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                            Contraseñas, secretos, notas confidenciales y cápsulas del tiempo, cifrados antes de guardarse.
+                        </p>
+                        <span class="mt-auto inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                            Ver módulo
+                            <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                            </svg>
+                        </span>
+                    </a>
+
+                    <!-- Finanzas module card -->
+                    <a href="#finanzas" class="group flex flex-col gap-3 p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m0-2c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">Finanzas Personales</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                            Ingresos, gastos, transferencias y ajustes organizados por cuenta, categoría y contexto, con informes en Excel y PDF.
+                        </p>
+                        <span class="mt-auto inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                            Ver módulo
+                            <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                            </svg>
+                        </span>
+                    </a>
+
+                    <!-- More modules coming -->
+                    <div class="flex flex-col gap-3 p-6 rounded-2xl border border-dashed border-stone-300 dark:border-stone-700 bg-stone-50/40 dark:bg-stone-900/30">
+                        <div class="w-10 h-10 rounded-xl bg-stone-200/70 dark:bg-stone-800/70 text-stone-500 dark:text-stone-400 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-stone-700 dark:text-stone-300">Más módulos en camino</h3>
+                        <p class="text-xs sm:text-sm text-stone-500 dark:text-stone-400 leading-relaxed">
+                            Café del Tiempo sigue creciendo — nuevas herramientas se irán sumando a la suite con el tiempo.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Vault Showcase Interactive Mockup -->
-            <section id="boveda" class="w-full">
+            <section id="boveda" class="w-full flex flex-col gap-4">
+                <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Módulo &bull; Bóveda Digital
+                </div>
+
                 <div class="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white/90 dark:bg-stone-900/90 shadow-xl overflow-hidden backdrop-blur-sm">
                     <!-- Window Top Bar -->
                     <div class="px-5 py-3.5 bg-stone-100/80 dark:bg-stone-950/80 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
@@ -320,11 +396,11 @@
                 </div>
             </section>
 
-            <!-- Features Grid -->
-            <section id="capsulas" class="flex flex-col gap-10">
+            <!-- Vault Features Grid -->
+            <section id="boveda-caracteristicas" class="flex flex-col gap-10">
                 <div class="text-center max-w-2xl mx-auto">
                     <span class="text-amber-700 dark:text-amber-400 text-xs font-semibold uppercase tracking-wider">
-                        Dimensiones del Proyecto
+                        Bóveda Digital &bull; Todo lo que incluye
                     </span>
                     <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 dark:text-stone-100 tracking-tight mt-1">
                         Mucho más que un gestor de secretos: un refugio en el tiempo
@@ -389,6 +465,180 @@
                 </div>
             </section>
 
+            <!-- Finance Showcase Interactive Mockup -->
+            <section id="finanzas" class="w-full flex flex-col gap-4">
+                <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Módulo &bull; Finanzas Personales
+                </div>
+
+                <div class="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white/90 dark:bg-stone-900/90 shadow-xl overflow-hidden backdrop-blur-sm">
+                    <!-- Window Top Bar -->
+                    <div class="px-5 py-3.5 bg-stone-100/80 dark:bg-stone-950/80 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-red-400/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-amber-400/80"></span>
+                            <span class="w-3 h-3 rounded-full bg-emerald-400/80"></span>
+                            <span class="ml-2 text-xs font-mono text-stone-500 dark:text-stone-400 hidden sm:inline">
+                                finanzas.cafe-del-tiempo.local &bull; resumen del mes
+                            </span>
+                        </div>
+                        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                            <span>Balance saludable</span>
+                        </div>
+                    </div>
+
+                    <!-- Inner Mockup Body -->
+                    <div class="p-5 sm:p-6 flex flex-col gap-5">
+                        <!-- KPI row -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div class="p-3.5 rounded-xl border border-stone-200/80 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/60">
+                                <p class="text-[11px] text-stone-500">Saldo total</p>
+                                <p class="mt-1 text-lg font-semibold text-stone-900 dark:text-stone-100">$ 4.280.000</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl border border-stone-200/80 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/60">
+                                <p class="text-[11px] text-stone-500">Ingresos</p>
+                                <p class="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-400">$ 3.100.000</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl border border-stone-200/80 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/60">
+                                <p class="text-[11px] text-stone-500">Gastos</p>
+                                <p class="mt-1 text-lg font-semibold text-rose-600 dark:text-rose-400">$ 1.860.000</p>
+                            </div>
+                            <div class="p-3.5 rounded-xl border border-stone-200/80 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/60">
+                                <p class="text-[11px] text-stone-500">Neto del mes</p>
+                                <p class="mt-1 text-lg font-semibold text-stone-900 dark:text-stone-100">$ 1.240.000</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <!-- Recent movements mock -->
+                            <div class="flex flex-col gap-2">
+                                <h3 class="text-sm font-semibold text-stone-900 dark:text-stone-100">Movimientos recientes</h3>
+                                <div class="flex flex-col divide-y divide-stone-200 dark:divide-stone-800 rounded-xl border border-stone-200/80 dark:border-stone-800 overflow-hidden">
+                                    <div class="flex items-center justify-between px-3.5 py-2.5 bg-stone-50/70 dark:bg-stone-950/60">
+                                        <span class="text-xs text-stone-600 dark:text-stone-400">Salario &bull; Personal</span>
+                                        <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">+ $ 2.500.000</span>
+                                    </div>
+                                    <div class="flex items-center justify-between px-3.5 py-2.5 bg-stone-50/70 dark:bg-stone-950/60">
+                                        <span class="text-xs text-stone-600 dark:text-stone-400">Combustible &bull; Vehículo</span>
+                                        <span class="text-xs font-medium text-rose-600 dark:text-rose-400">- $ 180.000</span>
+                                    </div>
+                                    <div class="flex items-center justify-between px-3.5 py-2.5 bg-stone-50/70 dark:bg-stone-950/60">
+                                        <span class="text-xs text-stone-600 dark:text-stone-400">Mercado &bull; Personal</span>
+                                        <span class="text-xs font-medium text-rose-600 dark:text-rose-400">- $ 320.000</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Expense by context mock -->
+                            <div class="flex flex-col gap-2">
+                                <h3 class="text-sm font-semibold text-stone-900 dark:text-stone-100">Gastos por contexto</h3>
+                                <div class="flex flex-col gap-3 rounded-xl border border-stone-200/80 dark:border-stone-800 p-3.5 bg-stone-50/70 dark:bg-stone-950/60">
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="text-stone-600 dark:text-stone-400">Personal</span>
+                                            <span class="font-medium text-stone-900 dark:text-stone-100">$ 1.240.000</span>
+                                        </div>
+                                        <div class="h-1.5 w-full rounded-full bg-stone-200 dark:bg-white/10">
+                                            <div class="h-full w-[80%] rounded-full bg-rose-500/80"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="text-stone-600 dark:text-stone-400">Vehículo</span>
+                                            <span class="font-medium text-stone-900 dark:text-stone-100">$ 480.000</span>
+                                        </div>
+                                        <div class="h-1.5 w-full rounded-full bg-stone-200 dark:bg-white/10">
+                                            <div class="h-full w-[35%] rounded-full bg-rose-500/80"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="text-stone-600 dark:text-stone-400">Trabajo</span>
+                                            <span class="font-medium text-stone-900 dark:text-stone-100">$ 140.000</span>
+                                        </div>
+                                        <div class="h-1.5 w-full rounded-full bg-stone-200 dark:bg-white/10">
+                                            <div class="h-full w-[15%] rounded-full bg-rose-500/80"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Finance Features Grid -->
+            <section id="finanzas-caracteristicas" class="flex flex-col gap-10">
+                <div class="text-center max-w-2xl mx-auto">
+                    <span class="text-emerald-700 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+                        Finanzas Personales &bull; Todo lo que incluye
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 dark:text-stone-100 tracking-tight mt-1">
+                        Claridad sobre a dónde va tu dinero, sin hojas de cálculo sueltas
+                    </h2>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 mt-2">
+                        Un panel financiero pensado para entenderse de un vistazo, no para atormentarte con contabilidad.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Feature 1 -->
+                    <div class="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col gap-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 19h16" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">Movimientos claros</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                            Ingresos, gastos, transferencias entre tus cuentas y ajustes de saldo, cada uno con su propia categoría y contexto.
+                        </p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col gap-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">Cuentas y saldos en vivo</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                            Saldo consolidado y por cuenta, calculado al instante. Archiva las que ya no uses sin perder su historial.
+                        </p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col gap-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">Contextos financieros</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                            Separa "Personal", "Vehículo" o cualquier otra actividad para analizar cada una por aparte, sin mezclarlas.
+                        </p>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white/70 dark:bg-stone-900/60 hover:border-emerald-300 dark:hover:border-emerald-700 transition-all flex flex-col gap-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 7h16M4 7a2 2 0 012-2h12a2 2 0 012 2M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">Informes en Excel y PDF</h3>
+                        <p class="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                            Descarga justo lo que estás viendo filtrado en pantalla, listo para revisar o compartir cuando lo necesites.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <!-- Philosophy & Manifesto Section -->
             <section id="filosofia" class="p-8 sm:p-12 rounded-3xl border border-amber-200/80 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/70 via-stone-50 to-orange-50/40 dark:from-stone-900 dark:via-stone-900/90 dark:to-amber-950/30">
                 <div class="max-w-2xl mx-auto text-center flex flex-col items-center gap-4">
@@ -401,6 +651,10 @@
                     </blockquote>
                     <p class="text-xs text-stone-500 dark:text-stone-400">
                         &mdash; Manifiesto de Café del Tiempo
+                    </p>
+                    <p class="text-[11px] text-stone-400 dark:text-stone-500">
+                        Un proyecto de
+                        <a href="https://tequia.dev/" target="_blank" rel="noopener noreferrer" class="font-medium text-amber-700 dark:text-amber-400 hover:underline">Tequia</a>
                     </p>
                 </div>
             </section>
@@ -433,7 +687,7 @@
                     <div class="text-stone-100">php artisan migrate</div>
                     <div class="text-stone-100">npm run build</div>
 
-                    <div class="text-stone-500 pt-2"># 4. Inicia tu bóveda personal</div>
+                    <div class="text-stone-500 pt-2"># 4. Inicia tu suite personal</div>
                     <div class="text-emerald-400">php artisan serve</div>
                 </div>
             </section>
@@ -442,19 +696,26 @@
 
         <!-- Footer -->
         <footer class="mt-20 border-t border-stone-200/80 dark:border-stone-800/80 py-10 bg-white/50 dark:bg-stone-950/50">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 dark:text-stone-400">
-                <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-md bg-amber-600 text-white flex items-center justify-center text-xs">☕</span>
-                    <span class="font-medium text-stone-800 dark:text-stone-200">{{ config('app.name', 'Café del Tiempo') }}</span>
-                    <span>&bull; Licencia MIT</span>
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500 dark:text-stone-400">
+                    <div class="flex items-center gap-3">
+                        <img src="{{ asset('images/logo-light.png') }}" alt="{{ config('app.name', 'Café del Tiempo') }}" class="h-6 dark:hidden">
+                        <img src="{{ asset('images/logo-dark.png') }}" alt="{{ config('app.name', 'Café del Tiempo') }}" class="hidden h-6 dark:block">
+                        <span>&bull; Licencia MIT</span>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <a href="https://github.com/xenthrall/cafe-del-tiempo" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition-colors">GitHub</a>
+                        <a href="https://laravel.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition-colors">Laravel</a>
+                        <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition-colors">Tailwind CSS</a>
+                    </div>
+                    <div>
+                        Construido con cuidado para proteger lo que perdura.
+                    </div>
                 </div>
-                <div class="flex items-center gap-6">
-                    <a href="https://github.com/xenthrall/cafe-del-tiempo" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition-colors">GitHub</a>
-                    <a href="https://laravel.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition-colors">Laravel</a>
-                    <a href="https://tailwindcss.com" target="_blank" rel="noopener noreferrer" class="hover:text-amber-600 transition-colors">Tailwind CSS</a>
-                </div>
-                <div>
-                    Construido con cuidado para proteger lo que perdura.
+
+                <div class="pt-6 border-t border-stone-200/70 dark:border-stone-800/70 text-center text-[11px] text-stone-400 dark:text-stone-500">
+                    Diseñado y desarrollado por
+                    <a href="https://tequia.dev/" target="_blank" rel="noopener noreferrer" class="font-medium text-amber-700 dark:text-amber-400 hover:underline">Tequia</a>
                 </div>
             </div>
         </footer>

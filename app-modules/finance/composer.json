@@ -1,0 +1,26 @@
+{
+	"name": "tequia/finance",
+	"description": "",
+	"type": "library",
+	"version": "1.0",
+	"license": "proprietary",
+	"require": {
+		"barryvdh/laravel-dompdf": "^3.1"
+	},
+	"autoload": {
+		"psr-4": {
+			"Tequia\\Finance\\": "src/",
+			"Tequia\\Finance\\Tests\\": "tests/",
+			"Tequia\\Finance\\Database\\Factories\\": "database/factories/",
+			"Tequia\\Finance\\Database\\Seeders\\": "database/seeders/"
+		}
+	},
+	"minimum-stability": "stable",
+	"extra": {
+		"laravel": {
+			"providers": [
+				"Tequia\\Finance\\Providers\\FinanceServiceProvider"
+			]
+		}
+	}
+}
