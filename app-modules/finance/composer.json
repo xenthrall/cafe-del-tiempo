@@ -4,7 +4,9 @@
 	"type": "library",
 	"version": "1.0",
 	"license": "proprietary",
-	"require": {},
+	"require": {
+		"barryvdh/laravel-dompdf": "^3.1"
+	},
 	"autoload": {
 		"psr-4": {
 			"Tequia\\Finance\\": "src/",

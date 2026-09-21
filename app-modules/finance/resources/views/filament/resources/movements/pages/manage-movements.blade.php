@@ -84,6 +84,10 @@
             </div>
 
             <div class="flex items-center justify-end gap-1">
+                {{ ($this->generateMovementsReportAction)([]) }}
+
+                <div class="mx-1 h-5 w-px bg-gray-200 dark:bg-white/10"></div>
+
                 <x-filament::icon-button
                     icon="heroicon-o-rectangle-stack"
                     label="Vista de tarjetas"

@@ -9,6 +9,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
+use Tequia\Finance\Filament\Resources\Movements\Actions\GenerateMovementsReportAction;
 use Tequia\Finance\Filament\Resources\Movements\Actions\ManageMovementAction;
 use Tequia\Finance\Filament\Resources\Movements\MovementResource;
 use Tequia\Finance\Filament\Resources\Movements\Tables\MovementsTable;
@@ -149,12 +150,22 @@ class ManageMovements extends Page implements HasTable
         return ManageMovementAction::make();
     }
 
+    public function generateMovementsReportAction(): GenerateMovementsReportAction
+    {
+        return GenerateMovementsReportAction::make();
+    }
+
     public function table(Table $table): Table
     {
         return MovementsTable::configure($table, $this->filteredMovementsQuery(), $this->viewMode);
     }
 
-    private function filteredMovementsQuery(): Builder
+    /**
+     * Expuesta (no privada) para que `GenerateMovementsReportAction` genere
+     * el informe sobre los mismos filtros que el usuario ve aplicados en
+     * esta página — ver `Actions/GenerateMovementsReportAction`.
+     */
+    public function filteredMovementsQuery(): Builder
     {
         [$from, $until] = $this->periodDateRange();
 
@@ -179,5 +190,48 @@ class ManageMovements extends Page implements HasTable
             'custom' => [$this->periodFrom, $this->periodUntil],
             default => [null, null],
         };
+    }
+
+    /**
+     * Descripción legible de los filtros activos, para el encabezado del
+     * informe generado por `GenerateMovementsReportAction`.
+     *
+     * @return array<int, string>
+     */
+    public function activeFiltersSummary(): array
+    {
+        $summary = [];
+
+        if ($this->activeType !== 'all') {
+            $summary[] = 'Tipo: '.match ($this->activeType) {
+                'income' => 'Ingresos',
+                'expense' => 'Gastos',
+                'transfer' => 'Transferencias',
+                'adjustment' => 'Ajustes',
+                default => $this->activeType,
+            };
+        }
+
+        if ($this->periodPreset) {
+            [$from, $until] = $this->periodDateRange();
+
+            $summary[] = 'Periodo: '.match ($this->periodPreset) {
+                'week' => 'Esta semana',
+                'month' => 'Este mes',
+                'year' => 'Este año',
+                'custom' => $from && $until ? "{$from} al {$until}" : 'Rango personalizado',
+                default => $this->periodPreset,
+            };
+        }
+
+        if ($this->contextId) {
+            $summary[] = 'Contexto: '.($this->contextOptions()->get($this->contextId) ?? '—');
+        }
+
+        if ($this->categoryId) {
+            $summary[] = 'Categoría: '.($this->categoryOptions()->get($this->categoryId) ?? '—');
+        }
+
+        return $summary;
     }
 }
