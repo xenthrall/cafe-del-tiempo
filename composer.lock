@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cca06e29317e544b7bc42b8f6a180801",
+    "content-hash": "95191cde247ca38240da0d010e4f4c98",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -9441,6 +9441,38 @@
             },
             "license": [
                 "MIT"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "tequia/finance",
+            "version": "1.0",
+            "dist": {
+                "type": "path",
+                "url": "app-modules/finance",
+                "reference": "0956feb4f6874925e61e5825783acf3b555bf73d"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Tequia\\Finance\\Providers\\FinanceServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Tequia\\Finance\\": "src/",
+                    "Tequia\\Finance\\Tests\\": "tests/",
+                    "Tequia\\Finance\\Database\\Factories\\": "database/factories/",
+                    "Tequia\\Finance\\Database\\Seeders\\": "database/seeders/"
+                }
+            },
+            "license": [
+                "proprietary"
             ],
             "transport-options": {
                 "symlink": true,

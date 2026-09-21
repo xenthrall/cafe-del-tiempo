@@ -11,7 +11,7 @@ Este documento cubre solo lo transversal al proyecto (posicionamiento, principio
 | Módulo | Estado | Documento |
 | --- | --- | --- |
 | `vault` — bóveda de credenciales | Primer módulo, en construcción | [`docs/vault.md`](vault.md) |
-| `finance` — finanzas personales | En planteamiento, sin implementar | [`docs/finance.md`](finance.md) |
+| `finance` — finanzas personales | En planteamiento, esqueleto de módulo creado | [`docs/finance.md`](finance.md) |
 
 ## Posicionamiento del proyecto (decidido)
 
