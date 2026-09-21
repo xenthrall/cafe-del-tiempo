@@ -3,16 +3,24 @@
 namespace Tequia\Finance\Filament\Resources\Movements\Pages;
 
 use Filament\Resources\Pages\Page;
-use Tequia\Finance\Enums\MovementType;
-use Tequia\Finance\Filament\Resources\Movements\Actions\DeleteMovementAction;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Livewire\Attributes\Url;
 use Tequia\Finance\Filament\Resources\Movements\Actions\ManageMovementAction;
 use Tequia\Finance\Filament\Resources\Movements\MovementResource;
+use Tequia\Finance\Filament\Resources\Movements\Tables\MovementsTable;
 use Tequia\Finance\Filament\Traits\HidesPageHeader;
+use Tequia\Finance\Models\Category;
+use Tequia\Finance\Models\FinancialContext;
 use Tequia\Finance\Models\Movement;
 
-class ManageMovements extends Page
+class ManageMovements extends Page implements HasTable
 {
     use HidesPageHeader;
+    use InteractsWithTable;
 
     protected static string $resource = MovementResource::class;
 
@@ -25,90 +33,151 @@ class ManageMovements extends Page
     protected static ?string $title = 'Movimientos';
 
     /**
-     * Cuántos movimientos recientes se listan. Un vault/finance single-user no
-     * necesita paginación real todavía (ver docs/finance.md); si el volumen lo
-     * exige más adelante, se reevalúa.
+     * Filtros — persistidos en la URL (`#[Url]`) para que sobrevivan a un
+     * refresco de página; `except` los omite de la URL cuando están en su
+     * valor por defecto, para no ensuciarla sin necesidad.
      */
-    private const MOVEMENTS_LIMIT = 200;
-
+    #[Url(as: 'type', except: 'all')]
     public string $activeType = 'all';
 
     /**
-     * @var array<int, array<string, mixed>>
+     * Ver MovementsTable — alterna entre el listado tipo tarjeta (por
+     * defecto, vista Blade custom) y una tabla plana clásica. No es un
+     * filtro, no se persiste en la URL.
      */
-    public array $movements = [];
+    public string $viewMode = MovementsTable::VIEW_MODE_CARDS;
 
-    public function mount(): void
-    {
-        $this->refreshMovements();
-    }
+    /**
+     * Preset del filtro de periodo: null (todo el historial), 'week',
+     * 'month', 'year' o 'custom' (usa $periodFrom/$periodUntil).
+     */
+    #[Url(as: 'period', except: null)]
+    public ?string $periodPreset = null;
+
+    #[Url(as: 'from', except: null)]
+    public ?string $periodFrom = null;
+
+    #[Url(as: 'until', except: null)]
+    public ?string $periodUntil = null;
+
+    #[Url(as: 'context', except: null)]
+    public ?int $contextId = null;
+
+    #[Url(as: 'category', except: null)]
+    public ?int $categoryId = null;
 
     public function setActiveType(string $type): void
     {
         $this->activeType = $type;
-        $this->refreshMovements();
+        $this->resetTable();
+    }
+
+    public function setViewMode(string $viewMode): void
+    {
+        $this->viewMode = $viewMode;
+        $this->resetTable();
+    }
+
+    public function updatedPeriodPreset(): void
+    {
+        if ($this->periodPreset !== 'custom') {
+            $this->periodFrom = null;
+            $this->periodUntil = null;
+        }
+
+        $this->resetTable();
+    }
+
+    public function updatedPeriodFrom(): void
+    {
+        $this->resetTable();
+    }
+
+    public function updatedPeriodUntil(): void
+    {
+        $this->resetTable();
+    }
+
+    public function updatedContextId(): void
+    {
+        $this->resetTable();
+    }
+
+    public function updatedCategoryId(): void
+    {
+        $this->resetTable();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public function contextOptions(): Collection
+    {
+        return FinancialContext::query()->orderBy('name')->pluck('name', 'id');
+    }
+
+    /**
+     * Lista plana de categorías (ambos tipos, jerárquica) para el filtro —
+     * a diferencia de ManageMovementAction, que solo ofrece las del tipo
+     * elegido en el formulario. No se usa flatMap() aquí por la misma razón
+     * documentada allí: colapsa las llaves enteras vía array_merge.
+     *
+     * @return Collection<int, string>
+     */
+    public function categoryOptions(): Collection
+    {
+        $options = [];
+
+        Category::query()
+            ->with(['children' => fn ($query) => $query->orderBy('name')])
+            ->whereNull('parent_id')
+            ->orderBy('name')
+            ->get()
+            ->each(function (Category $category) use (&$options): void {
+                $options[$category->id] = $category->name;
+
+                foreach ($category->children as $child) {
+                    $options[$child->id] = "{$category->name} > {$child->name}";
+                }
+            });
+
+        return collect($options);
     }
 
     public function manageMovementAction(): ManageMovementAction
     {
-        return ManageMovementAction::make()->after(
-            fn () => $this->refreshMovements(),
-        );
+        return ManageMovementAction::make();
     }
 
-    public function deleteMovementAction(): DeleteMovementAction
+    public function table(Table $table): Table
     {
-        return DeleteMovementAction::make()->after(
-            fn () => $this->refreshMovements(),
-        );
+        return MovementsTable::configure($table, $this->filteredMovementsQuery(), $this->viewMode);
     }
 
-    private function refreshMovements(): void
+    private function filteredMovementsQuery(): Builder
     {
-        $this->movements = Movement::query()
-            ->with([
-                'account',
-                'fromAccount',
-                'toAccount',
-                'category',
-                'financialContext',
-            ])
-            ->when(
-                $this->activeType !== 'all',
-                fn ($query) => $query->where('type', $this->activeType),
-            )
-            ->orderByDesc('date')
-            ->orderByDesc('id')
-            ->limit(self::MOVEMENTS_LIMIT)
-            ->get()
-            ->map(
-                fn (Movement $movement): array => $this->serializeMovement(
-                    $movement,
-                ),
-            )
-            ->all();
+        [$from, $until] = $this->periodDateRange();
+
+        return Movement::query()
+            ->with(['account', 'fromAccount', 'toAccount', 'category', 'financialContext'])
+            ->when($this->activeType !== 'all', fn (Builder $query): Builder => $query->where('type', $this->activeType))
+            ->when($this->contextId, fn (Builder $query): Builder => $query->where('financial_context_id', $this->contextId))
+            ->when($this->categoryId, fn (Builder $query): Builder => $query->where('category_id', $this->categoryId))
+            ->when($from, fn (Builder $query): Builder => $query->whereDate('date', '>=', $from))
+            ->when($until, fn (Builder $query): Builder => $query->whereDate('date', '<=', $until));
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{0: ?string, 1: ?string}
      */
-    private function serializeMovement(Movement $movement): array
+    private function periodDateRange(): array
     {
-        return [
-            'id' => $movement->id,
-            'type' => $movement->type->value,
-            'typeLabel' => $movement->type->label(),
-            'typeColor' => $movement->type->color(),
-            'typeIcon' => $movement->type->icon(),
-            'accountsLabel' => $movement->accountsLabel(),
-            'categoryName' => $movement->category?->name,
-            'contextName' => $movement->financialContext?->name,
-            'formattedAmount' => $movement->formattedAmount(),
-            'isNegative' => in_array($movement->type, [MovementType::Expense], true) ||
-                ($movement->type === MovementType::Adjustment &&
-                    $movement->amount < 0),
-            'date' => $movement->date->format('d/m/Y'),
-            'description' => $movement->description,
-        ];
+        return match ($this->periodPreset) {
+            'week' => [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()],
+            'month' => [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()],
+            'year' => [now()->startOfYear()->toDateString(), now()->endOfYear()->toDateString()],
+            'custom' => [$this->periodFrom, $this->periodUntil],
+            default => [null, null],
+        };
     }
 }

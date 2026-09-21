@@ -21,6 +21,7 @@ class Category extends Model
         'name',
         'type',
         'parent_id',
+        'financial_context_id',
     ];
 
     /**
@@ -55,6 +56,17 @@ class Category extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(Movement::class);
+    }
+
+    /**
+     * Contexto financiero al que pertenece la categoría (opcional) — para
+     * poder ver de un vistazo qué categorías corresponden a qué contexto.
+     *
+     * @return BelongsTo<FinancialContext, $this>
+     */
+    public function financialContext(): BelongsTo
+    {
+        return $this->belongsTo(FinancialContext::class);
     }
 
     protected static function newFactory(): CategoryFactory

@@ -29,10 +29,12 @@ use Tequia\Finance\Support\Money;
 
 /**
  * Acción reutilizable para crear o editar un movimiento (ver docs/finance.md —
- * Interfaz Filament). Sin argumentos crea uno nuevo; con un argumento `movement`
- * (id) precarga y edita ese movimiento. Delega el guardado a `SaveMovement`,
- * única puerta de entrada de la lógica de negocio, para que ningún formulario
- * pueda dejar datos inconsistentes.
+ * Interfaz Filament). Dos formas de indicar qué movimiento editar, para poder
+ * usarse tanto suelta (blade, con `->arguments(['movement' => $id])`) como
+ * `recordAction` de una Table de Filament (que enlaza el registro directo):
+ * sin ninguna de las dos, crea un movimiento nuevo. Delega el guardado a
+ * `SaveMovement`, única puerta de entrada de la lógica de negocio, para que
+ * ningún formulario pueda dejar datos inconsistentes.
  */
 class ManageMovementAction extends Action
 {
@@ -46,23 +48,31 @@ class ManageMovementAction extends Action
         parent::setUp();
 
         $this
-            ->label(fn (array $arguments): string => $this->isEditing($arguments) ? 'Editar movimiento' : 'Nuevo movimiento')
-            ->modalHeading(fn (array $arguments): string => $this->isEditing($arguments) ? 'Editar movimiento' : 'Nuevo movimiento')
+            ->label(fn (array $arguments, ?Movement $record): string => $this->isEditing($arguments, $record) ? 'Editar movimiento' : 'Nuevo movimiento')
+            ->modalHeading(fn (array $arguments, ?Movement $record): string => $this->isEditing($arguments, $record) ? 'Editar movimiento' : 'Nuevo movimiento')
             ->modalWidth(Width::Large)
-            ->icon(fn (array $arguments) => $this->isEditing($arguments) ? 'heroicon-o-pencil-square' : 'heroicon-o-plus')
+            ->icon(fn (array $arguments, ?Movement $record) => $this->isEditing($arguments, $record) ? 'heroicon-o-pencil-square' : 'heroicon-o-plus')
             ->schema($this->formSchema())
-            ->fillForm(fn (array $arguments): array => $this->fillFormData($arguments))
-            ->action(function (array $data, array $arguments, Action $action): void {
-                $this->save($data, $arguments, $action);
+            ->fillForm(fn (array $arguments, ?Movement $record): array => $this->fillFormData($arguments, $record))
+            ->action(function (array $data, array $arguments, ?Movement $record, Action $action): void {
+                $this->save($data, $arguments, $record, $action);
             });
     }
 
     /**
      * @param  array<string, mixed>  $arguments
      */
-    private function isEditing(array $arguments): bool
+    private function isEditing(array $arguments, ?Movement $record): bool
     {
-        return filled($arguments['movement'] ?? null);
+        return $this->resolveMovementId($arguments, $record) !== null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function resolveMovementId(array $arguments, ?Movement $record): ?int
+    {
+        return $record?->id ?? ($arguments['movement'] ?? null);
     }
 
     /**
@@ -194,16 +204,18 @@ class ManageMovementAction extends Action
      * @param  array<string, mixed>  $arguments
      * @return array<string, mixed>
      */
-    private function fillFormData(array $arguments): array
+    private function fillFormData(array $arguments, ?Movement $record): array
     {
-        if (! $this->isEditing($arguments)) {
+        $movementId = $this->resolveMovementId($arguments, $record);
+
+        if ($movementId === null) {
             return [
                 'type' => $arguments['type'] ?? MovementType::Expense->value,
                 'date' => now()->toDateString(),
             ];
         }
 
-        $movement = Movement::findOrFail($arguments['movement']);
+        $movement = $record ?? Movement::findOrFail($movementId);
 
         return [
             'type' => $movement->type->value,
@@ -222,11 +234,13 @@ class ManageMovementAction extends Action
      * @param  array<string, mixed>  $data
      * @param  array<string, mixed>  $arguments
      */
-    private function save(array $data, array $arguments, Action $action): void
+    private function save(array $data, array $arguments, ?Movement $record, Action $action): void
     {
+        $movementId = $this->resolveMovementId($arguments, $record);
+
         try {
-            if ($this->isEditing($arguments)) {
-                app(SaveMovement::class)->update(Movement::findOrFail($arguments['movement']), $data);
+            if ($movementId !== null) {
+                app(SaveMovement::class)->update($record ?? Movement::findOrFail($movementId), $data);
             } else {
                 app(SaveMovement::class)->create($data);
             }

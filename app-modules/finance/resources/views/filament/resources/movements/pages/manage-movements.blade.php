@@ -33,56 +33,72 @@
             </div>
         </div>
 
-        @if (empty($movements))
-            <div class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
-                No hay movimientos {{ $activeType === 'all' ? 'registrados' : 'de este tipo' }} todavía.
-            </div>
-        @else
-            <div class="flex flex-col divide-y divide-gray-200 rounded-xl border border-gray-200 dark:divide-white/10 dark:border-white/10">
-                @foreach ($movements as $movement)
-                    <div class="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <x-filament::badge :color="$movement['typeColor']" :icon="$movement['typeIcon']">
-                                {{ $movement['typeLabel'] }}
-                            </x-filament::badge>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="w-full sm:w-44">
+                    <x-filament::input.wrapper>
+                        <x-filament::input.select wire:model.live="periodPreset">
+                            <option value="">Todo el historial</option>
+                            <option value="week">Esta semana</option>
+                            <option value="month">Este mes</option>
+                            <option value="year">Este año</option>
+                            <option value="custom">Rango personalizado</option>
+                        </x-filament::input.select>
+                    </x-filament::input.wrapper>
+                </div>
 
-                            <div class="min-w-0">
-                                <p class="truncate font-medium text-gray-950 dark:text-white">
-                                    {{ $movement['accountsLabel'] }}
-                                    @if ($movement['categoryName'])
-                                        <span class="text-gray-400">· {{ $movement['categoryName'] }}</span>
-                                    @endif
-                                </p>
-                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $movement['date'] }}
-                                    @if ($movement['contextName'])
-                                        · {{ $movement['contextName'] }}
-                                    @endif
-                                    @if ($movement['description'])
-                                        · {{ $movement['description'] }}
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center justify-between gap-3 sm:shrink-0 sm:justify-end">
-                            <span @class([
-                                'font-semibold',
-                                'text-danger-600 dark:text-danger-400' => $movement['isNegative'],
-                                'text-success-600 dark:text-success-400' => ! $movement['isNegative'] && $movement['type'] !== 'transfer',
-                                'text-gray-700 dark:text-gray-300' => $movement['type'] === 'transfer',
-                            ])>
-                                {{ $movement['isNegative'] ? '-' : '' }}{{ $movement['formattedAmount'] }}
-                            </span>
-
-                            <div class="flex items-center gap-1">
-                                {{ ($this->manageMovementAction)(['movement' => $movement['id']])->iconButton() }}
-                                {{ ($this->deleteMovementAction)(['movement' => $movement['id']]) }}
-                            </div>
-                        </div>
+                @if ($periodPreset === 'custom')
+                    <div class="w-[calc(50%-0.25rem)] sm:w-36">
+                        <x-filament::input.wrapper>
+                            <x-filament::input type="date" wire:model.live="periodFrom" />
+                        </x-filament::input.wrapper>
                     </div>
-                @endforeach
+                    <div class="w-[calc(50%-0.25rem)] sm:w-36">
+                        <x-filament::input.wrapper>
+                            <x-filament::input type="date" wire:model.live="periodUntil" />
+                        </x-filament::input.wrapper>
+                    </div>
+                @endif
+
+                <div class="w-full sm:w-48">
+                    <x-filament::input.wrapper>
+                        <x-filament::input.select wire:model.live="contextId">
+                            <option value="">Todos los contextos</option>
+                            @foreach ($this->contextOptions() as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
+                            @endforeach
+                        </x-filament::input.select>
+                    </x-filament::input.wrapper>
+                </div>
+
+                <div class="w-full sm:w-48">
+                    <x-filament::input.wrapper>
+                        <x-filament::input.select wire:model.live="categoryId">
+                            <option value="">Todas las categorías</option>
+                            @foreach ($this->categoryOptions() as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
+                            @endforeach
+                        </x-filament::input.select>
+                    </x-filament::input.wrapper>
+                </div>
             </div>
-        @endif
+
+            <div class="flex items-center justify-end gap-1">
+                <x-filament::icon-button
+                    icon="heroicon-o-rectangle-stack"
+                    label="Vista de tarjetas"
+                    :color="$viewMode === 'cards' ? 'primary' : 'gray'"
+                    wire:click="setViewMode('cards')"
+                />
+                <x-filament::icon-button
+                    icon="heroicon-o-table-cells"
+                    label="Vista de tabla"
+                    :color="$viewMode === 'columns' ? 'primary' : 'gray'"
+                    wire:click="setViewMode('columns')"
+                />
+            </div>
+        </div>
+
+        {{ $this->table }}
     </div>
 </x-filament-panels::page>

@@ -17,7 +17,18 @@ class FinancialContext extends Model
      */
     protected $fillable = [
         'name',
+        'is_active',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     /**
      * @return HasMany<Movement, $this>
@@ -25,6 +36,24 @@ class FinancialContext extends Model
     public function movements(): HasMany
     {
         return $this->hasMany(Movement::class);
+    }
+
+    /**
+     * @return HasMany<Category, $this>
+     */
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class);
+    }
+
+    /**
+     * Un contexto con movimientos no se puede eliminar sin perder histórico
+     * real — mismo protector que `Account::hasMovements()`, ahora respaldado
+     * también por `restrictOnDelete()` en `movements.financial_context_id`.
+     */
+    public function hasMovements(): bool
+    {
+        return $this->movements()->exists();
     }
 
     protected static function newFactory(): FinancialContextFactory
