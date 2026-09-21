@@ -86,6 +86,9 @@
 
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <x-filament::tabs contained>
+                        <x-filament::tabs.item :active="$categoryType === 'all'" wire:click="setCategoryType('all')">
+                            Todos
+                        </x-filament::tabs.item>
                         <x-filament::tabs.item :active="$categoryType === 'expense'" icon="heroicon-o-arrow-trending-down" wire:click="setCategoryType('expense')">
                             Gastos
                         </x-filament::tabs.item>
@@ -97,26 +100,46 @@
                     <div class="w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto">
                         {{ ($this->manageCategoryAction)([
                             'financial_context_id' => $selectedContextId,
-                            'type' => $categoryType,
+                            'type' => $categoryType === 'all' ? 'expense' : $categoryType,
                         ]) }}
                     </div>
                 </div>
 
                 @if (empty($categories))
                     <div class="rounded-xl border border-dashed border-gray-300 px-4 py-10 text-center text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
-                        Todavía no hay categorías de {{ $categoryType === 'expense' ? 'gasto' : 'ingreso' }} en este contexto.
+                        @if ($categoryType === 'all')
+                            Todavía no hay categorías en este contexto.
+                        @else
+                            Todavía no hay categorías de {{ $categoryType === 'expense' ? 'gasto' : 'ingreso' }} en este contexto.
+                        @endif
                     </div>
                 @else
                     <div class="flex flex-col divide-y divide-gray-200 rounded-xl border border-gray-200 dark:divide-white/10 dark:border-white/10">
                         @foreach ($categories as $category)
-                            <div class="flex items-center justify-between gap-3 px-4 py-3">
+                            <div @class([
+                                'flex items-center justify-between gap-3 px-4 py-3',
+                                'opacity-60' => ! $category['isActive'],
+                            ])>
                                 <div class="flex items-center gap-2 min-w-0">
                                     <x-filament::icon icon="heroicon-o-tag" class="h-4 w-4 shrink-0 text-gray-400" />
                                     <span class="truncate font-medium text-gray-950 dark:text-white">{{ $category['name'] }}</span>
+                                    @if ($categoryType === 'all')
+                                        <x-filament::badge :color="$category['type'] === 'expense' ? 'danger' : 'success'" size="sm">
+                                            {{ $category['typeLabel'] }}
+                                        </x-filament::badge>
+                                    @endif
                                     <span class="shrink-0 text-xs text-gray-400">({{ $category['movementsCount'] }})</span>
+                                    @unless ($category['isActive'])
+                                        <span class="shrink-0 text-xs text-warning-600 dark:text-warning-400">Archivada</span>
+                                    @endunless
                                 </div>
 
                                 <div class="flex shrink-0 items-center gap-1">
+                                    <x-filament::icon-button
+                                        :icon="$category['isActive'] ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark'"
+                                        :label="$category['isActive'] ? 'Archivar' : 'Reactivar'"
+                                        wire:click="toggleCategoryActive({{ $category['id'] }})"
+                                    />
                                     {{ ($this->manageCategoryAction)([
                                         'category' => $category['id'],
                                         'financial_context_id' => $selectedContextId,
@@ -126,14 +149,30 @@
                             </div>
 
                             @foreach ($category['children'] as $child)
-                                <div class="flex items-center justify-between gap-3 bg-gray-50/50 px-4 py-3 pl-10 dark:bg-white/[0.02]">
+                                <div @class([
+                                    'flex items-center justify-between gap-3 bg-gray-50/50 px-4 py-3 pl-10 dark:bg-white/[0.02]',
+                                    'opacity-60' => ! $child['isActive'],
+                                ])>
                                     <div class="flex items-center gap-2 min-w-0">
                                         <x-filament::icon icon="heroicon-o-arrow-turn-down-right" class="h-4 w-4 shrink-0 text-gray-300" />
                                         <span class="truncate text-gray-700 dark:text-gray-300">{{ $child['name'] }}</span>
+                                        @if ($categoryType === 'all')
+                                            <x-filament::badge :color="$child['type'] === 'expense' ? 'danger' : 'success'" size="sm">
+                                                {{ $child['typeLabel'] }}
+                                            </x-filament::badge>
+                                        @endif
                                         <span class="shrink-0 text-xs text-gray-400">({{ $child['movementsCount'] }})</span>
+                                        @unless ($child['isActive'])
+                                            <span class="shrink-0 text-xs text-warning-600 dark:text-warning-400">Archivada</span>
+                                        @endunless
                                     </div>
 
                                     <div class="flex shrink-0 items-center gap-1">
+                                        <x-filament::icon-button
+                                            :icon="$child['isActive'] ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark'"
+                                            :label="$child['isActive'] ? 'Archivar' : 'Reactivar'"
+                                            wire:click="toggleCategoryActive({{ $child['id'] }})"
+                                        />
                                         {{ ($this->manageCategoryAction)([
                                             'category' => $child['id'],
                                             'financial_context_id' => $selectedContextId,

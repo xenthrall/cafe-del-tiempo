@@ -22,6 +22,7 @@ class Category extends Model
         'type',
         'parent_id',
         'financial_context_id',
+        'is_active',
     ];
 
     /**
@@ -31,6 +32,7 @@ class Category extends Model
     {
         return [
             'type' => CategoryType::class,
+            'is_active' => 'boolean',
         ];
     }
 
@@ -67,6 +69,16 @@ class Category extends Model
     public function financialContext(): BelongsTo
     {
         return $this->belongsTo(FinancialContext::class);
+    }
+
+    /**
+     * Una categoría con movimientos no se puede eliminar sin perder histórico
+     * real (`movements.category_id` usa `restrictOnDelete()`) — se archiva
+     * en su lugar. Mismo patrón que `Account::hasMovements()`.
+     */
+    public function hasMovements(): bool
+    {
+        return $this->movements()->exists();
     }
 
     protected static function newFactory(): CategoryFactory

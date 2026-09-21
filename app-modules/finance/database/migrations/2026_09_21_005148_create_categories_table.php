@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('type');
             $table->foreignId('parent_id')->nullable()->constrained('categories')->nullOnDelete();
             $table->foreignId('financial_context_id')->nullable()->constrained('financial_contexts')->nullOnDelete();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }

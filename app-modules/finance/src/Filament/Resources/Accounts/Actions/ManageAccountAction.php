@@ -3,6 +3,7 @@
 namespace Tequia\Finance\Filament\Resources\Accounts\Actions;
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Tequia\Finance\Enums\AccountType;
@@ -52,7 +53,7 @@ class ManageAccountAction extends Action
     }
 
     /**
-     * @return array<int, TextInput|Select>
+     * @return array<int, TextInput|Select|Checkbox>
      */
     private function formSchema(): array
     {
@@ -78,6 +79,10 @@ class ManageAccountAction extends Action
                 ->default(0)
                 ->required()
                 ->helperText('Puede ser negativo (por ejemplo, una tarjeta de crédito con saldo pendiente).'),
+
+            Checkbox::make('is_active')
+                ->label('Cuenta activa (aparece en los selectores al registrar movimientos)')
+                ->default(true),
         ];
     }
 
@@ -93,6 +98,7 @@ class ManageAccountAction extends Action
             return [
                 'type' => AccountType::Cash->value,
                 'opening_balance' => 0,
+                'is_active' => true,
             ];
         }
 
@@ -102,6 +108,7 @@ class ManageAccountAction extends Action
             'name' => $account->name,
             'type' => $account->type->value,
             'opening_balance' => (string) $account->opening_balance,
+            'is_active' => $account->is_active,
         ];
     }
 

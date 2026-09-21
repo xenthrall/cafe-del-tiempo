@@ -40,7 +40,7 @@ class DeleteAccountAction extends Action
                 if ($account->hasMovements()) {
                     Notification::make()
                         ->title('No se pudo eliminar la cuenta')
-                        ->body('Tiene movimientos registrados. Elimínalos primero si de verdad quieres borrar la cuenta.')
+                        ->body('Tiene movimientos registrados. Archívala si ya no la usas, para conservar el histórico.')
                         ->danger()
                         ->send();
 

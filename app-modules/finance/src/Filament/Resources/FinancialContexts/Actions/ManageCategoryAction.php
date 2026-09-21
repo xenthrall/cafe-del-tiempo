@@ -3,6 +3,7 @@
 namespace Tequia\Finance\Filament\Resources\FinancialContexts\Actions;
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -70,7 +71,7 @@ class ManageCategoryAction extends Action
     }
 
     /**
-     * @return array<int, TextInput|Select|Hidden>
+     * @return array<int, TextInput|Select|Checkbox|Hidden>
      */
     private function formSchema(): array
     {
@@ -95,12 +96,21 @@ class ManageCategoryAction extends Action
 
             Select::make('parent_id')
                 ->label('Categoría padre (opcional)')
-                ->options(fn (Get $get): Collection => $this->parentOptions($get('type'), $get('financial_context_id'), $get('editing_category_id')))
+                ->options(fn (Get $get): Collection => $this->parentOptions(
+                    $get('type'),
+                    $get('financial_context_id'),
+                    $get('editing_category_id'),
+                    $get('parent_id'),
+                ))
                 ->native(false),
+
+            Checkbox::make('is_active')
+                ->label('Categoría activa (aparece en los selectores al registrar movimientos)')
+                ->default(true),
         ];
     }
 
-    private function parentOptions(?string $type, mixed $contextId, mixed $excludeId): Collection
+    private function parentOptions(?string $type, mixed $contextId, mixed $excludeId, mixed $currentParentId): Collection
     {
         if (! in_array($type, [CategoryType::Income->value, CategoryType::Expense->value], true)) {
             return collect();
@@ -109,6 +119,9 @@ class ManageCategoryAction extends Action
         return Category::query()
             ->where('type', $type)
             ->where('financial_context_id', $contextId ?: null)
+            ->where(fn ($query) => $query
+                ->where('is_active', true)
+                ->when($currentParentId, fn ($query) => $query->orWhere('id', $currentParentId)))
             ->when($excludeId, fn ($query) => $query->whereKeyNot($excludeId))
             ->orderBy('name')
             ->pluck('name', 'id');
@@ -126,6 +139,7 @@ class ManageCategoryAction extends Action
             return [
                 'type' => $arguments['type'] ?? CategoryType::Expense->value,
                 'financial_context_id' => $this->resolveContextId($arguments, $record),
+                'is_active' => true,
             ];
         }
 
@@ -137,6 +151,7 @@ class ManageCategoryAction extends Action
             'parent_id' => $category->parent_id,
             'financial_context_id' => $category->financial_context_id,
             'editing_category_id' => $category->id,
+            'is_active' => $category->is_active,
         ];
     }
 

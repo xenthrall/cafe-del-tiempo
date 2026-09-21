@@ -44,7 +44,10 @@ class ManageFinancialContexts extends Page
      */
     public ?int $selectedContextId = null;
 
-    public string $categoryType = 'expense';
+    /**
+     * 'all' (por defecto), 'expense' o 'income'.
+     */
+    public string $categoryType = 'all';
 
     /**
      * @var array<int, array<string, mixed>>
@@ -74,6 +77,14 @@ class ManageFinancialContexts extends Page
     public function setCategoryType(string $type): void
     {
         $this->categoryType = $type;
+        $this->refreshCategories();
+    }
+
+    public function toggleCategoryActive(int $categoryId): void
+    {
+        $category = Category::findOrFail($categoryId);
+        $category->update(['is_active' => ! $category->is_active]);
+
         $this->refreshCategories();
     }
 
@@ -125,11 +136,12 @@ class ManageFinancialContexts extends Page
     private function refreshCategories(): void
     {
         $this->categories = Category::query()
-            ->where('type', $this->categoryType)
+            ->when($this->categoryType !== 'all', fn ($query) => $query->where('type', $this->categoryType))
             ->where('financial_context_id', $this->selectedContextId)
             ->whereNull('parent_id')
-            ->with(['children' => fn ($query) => $query->orderBy('name')])
+            ->with(['children' => fn ($query) => $query->orderByDesc('is_active')->orderBy('name')])
             ->withCount('movements')
+            ->orderByDesc('is_active')
             ->orderBy('name')
             ->get()
             ->map(fn (Category $category): array => $this->serializeCategory($category))
@@ -144,12 +156,18 @@ class ManageFinancialContexts extends Page
         return [
             'id' => $category->id,
             'name' => $category->name,
+            'type' => $category->type->value,
+            'typeLabel' => $category->type->label(),
             'movementsCount' => $category->movements_count,
+            'isActive' => $category->is_active,
             'children' => $category->children
                 ->map(fn (Category $child): array => [
                     'id' => $child->id,
                     'name' => $child->name,
+                    'type' => $child->type->value,
+                    'typeLabel' => $child->type->label(),
                     'movementsCount' => $child->movements()->count(),
+                    'isActive' => $child->is_active,
                 ])
                 ->all(),
         ];

@@ -93,7 +93,7 @@ class ManageMovementAction extends Action
             Grid::make(2)->schema([
                 Select::make('from_account_id')
                     ->label('Cuenta de origen')
-                    ->options(fn (): Collection => $this->accountOptions())
+                    ->options(fn (Get $get): Collection => $this->accountOptions($get('from_account_id')))
                     ->visible(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->required(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->different('to_account_id')
@@ -101,7 +101,7 @@ class ManageMovementAction extends Action
 
                 Select::make('to_account_id')
                     ->label('Cuenta de destino')
-                    ->options(fn (): Collection => $this->accountOptions())
+                    ->options(fn (Get $get): Collection => $this->accountOptions($get('to_account_id')))
                     ->visible(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->required(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->native(false),
@@ -109,7 +109,7 @@ class ManageMovementAction extends Action
 
             Select::make('account_id')
                 ->label('Cuenta')
-                ->options(fn (): Collection => $this->accountOptions())
+                ->options(fn (Get $get): Collection => $this->accountOptions($get('account_id')))
                 ->visible(fn (Get $get): bool => $get('type') !== MovementType::Transfer->value)
                 ->required(fn (Get $get): bool => $get('type') !== MovementType::Transfer->value)
                 ->native(false),
@@ -126,7 +126,7 @@ class ManageMovementAction extends Action
 
                 Select::make('category_id')
                     ->label('Categoría (opcional)')
-                    ->options(fn (Get $get): Collection => $this->categoryOptions($get('type'), $get('financial_context_id')))
+                    ->options(fn (Get $get): Collection => $this->categoryOptions($get('type'), $get('financial_context_id'), $get('category_id')))
                     ->visible(fn (Get $get): bool => in_array($get('type'), [
                         MovementType::Income->value,
                         MovementType::Expense->value,
@@ -259,9 +259,19 @@ class ManageMovementAction extends Action
         }
     }
 
-    private function accountOptions(): Collection
+    /**
+     * Solo cuentas activas — igual que con los contextos (ver
+     * `contextOptions()`), salvo la que ya tenga asignada este campo (su
+     * valor actual, vía `Get`), para no quitársela en silencio al editar.
+     */
+    private function accountOptions(mixed $currentAccountId): Collection
     {
-        return Account::query()->orderBy('name')->pluck('name', 'id');
+        return Account::query()
+            ->where(fn ($query) => $query
+                ->where('is_active', true)
+                ->when($currentAccountId, fn ($query) => $query->orWhere('id', $currentAccountId)))
+            ->orderBy('name')
+            ->pluck('name', 'id');
     }
 
     /**
@@ -285,14 +295,18 @@ class ManageMovementAction extends Action
     }
 
     /**
-     * Categorías del contexto elegido más las generales (sin contexto) —
-     * las categorías ahora pertenecen a un contexto (ver docs/finance.md),
-     * así que acotar por el contexto ya elegido en el formulario es más
-     * intuitivo que mostrar siempre todas las categorías del tipo.
+     * Categorías activas del contexto elegido más las generales (sin
+     * contexto) — las categorías ahora pertenecen a un contexto (ver
+     * docs/finance.md), así que acotar por el contexto ya elegido en el
+     * formulario es más intuitivo que mostrar siempre todas las categorías
+     * del tipo. La categoría actual del movimiento se conserva aunque esté
+     * archivada (padre o hija — a diferencia de cuentas/contextos, se
+     * resuelve aparte porque una hija archivada no sale en la consulta
+     * principal, que solo trae padres y sus hijas activas).
      *
      * @return Collection<int|string, string>
      */
-    private function categoryOptions(?string $type, mixed $contextId): Collection
+    private function categoryOptions(?string $type, mixed $contextId, mixed $currentCategoryId): Collection
     {
         if (! in_array($type, [CategoryType::Income->value, CategoryType::Expense->value], true)) {
             return collect();
@@ -306,10 +320,11 @@ class ManageMovementAction extends Action
 
         Category::query()
             ->where('type', $type)
+            ->where('is_active', true)
             ->where(fn ($query) => $query
                 ->where('financial_context_id', $contextId)
                 ->when($contextId, fn ($query) => $query->orWhereNull('financial_context_id')))
-            ->with(['children' => fn ($query) => $query->orderBy('name')])
+            ->with(['children' => fn ($query) => $query->where('is_active', true)->orderBy('name')])
             ->whereNull('parent_id')
             ->orderBy('name')
             ->get()
@@ -320,6 +335,14 @@ class ManageMovementAction extends Action
                     $options[$child->id] = "{$category->name} > {$child->name}";
                 }
             });
+
+        if ($currentCategoryId && ! isset($options[$currentCategoryId])) {
+            $current = Category::query()->with('parent')->find($currentCategoryId);
+
+            if ($current) {
+                $options[$current->id] = $current->parent ? "{$current->parent->name} > {$current->name}" : $current->name;
+            }
+        }
 
         return collect($options);
     }

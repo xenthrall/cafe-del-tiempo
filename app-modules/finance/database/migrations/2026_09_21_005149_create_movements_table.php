@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('account_id')->nullable()->constrained('accounts')->restrictOnDelete();
             $table->foreignId('from_account_id')->nullable()->constrained('accounts')->restrictOnDelete();
             $table->foreignId('to_account_id')->nullable()->constrained('accounts')->restrictOnDelete();
-            $table->foreignId('category_id')->nullable()->constrained('categories')->nullOnDelete();
+            $table->foreignId('category_id')->nullable()->constrained('categories')->restrictOnDelete();
             $table->foreignId('financial_context_id')->nullable()->constrained('financial_contexts')->restrictOnDelete();
             $table->decimal('amount', 14, 2);
             $table->date('date');

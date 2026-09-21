@@ -43,10 +43,19 @@ class ManageAccounts extends Page
         return DeleteAccountAction::make()->after(fn () => $this->refreshAccounts());
     }
 
+    public function toggleAccountActive(int $accountId): void
+    {
+        $account = Account::findOrFail($accountId);
+        $account->update(['is_active' => ! $account->is_active]);
+
+        $this->refreshAccounts();
+    }
+
     private function refreshAccounts(): void
     {
         $this->accounts = Account::query()
             ->with(['movements', 'outgoingTransfers', 'incomingTransfers'])
+            ->orderByDesc('is_active')
             ->orderBy('name')
             ->get()
             ->map(fn (Account $account): array => [
@@ -58,6 +67,7 @@ class ManageAccounts extends Page
                 'openingBalance' => $account->opening_balance,
                 'balance' => $account->balance(),
                 'formattedBalance' => $account->formattedBalance(),
+                'isActive' => $account->is_active,
             ])
             ->all();
     }

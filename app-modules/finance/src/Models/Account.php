@@ -23,6 +23,7 @@ class Account extends Model
         'type',
         'currency',
         'opening_balance',
+        'is_active',
     ];
 
     /**
@@ -33,6 +34,7 @@ class Account extends Model
         return [
             'type' => AccountType::class,
             'opening_balance' => 'decimal:2',
+            'is_active' => 'boolean',
         ];
     }
 

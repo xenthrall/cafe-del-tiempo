@@ -3,13 +3,14 @@
 namespace Tequia\Finance\Filament\Resources\FinancialContexts\Actions;
 
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Tequia\Finance\Models\Category;
 
 /**
- * Acción reutilizable para eliminar una categoría. Sin restricción de
- * `hasMovements()` a propósito: las categorías se pueden borrar libremente,
- * sus movimientos quedan sin categoría (`nullOnDelete`) en vez de perderse
- * (ver docs/finance.md — Borrado protegido de cuentas y contextos).
+ * Acción reutilizable para eliminar una categoría. Antes de borrar comprueba
+ * `Category::hasMovements()` — una categoría con movimientos no se puede
+ * perder sin perder histórico real (`movements.category_id` usa
+ * `restrictOnDelete()` — ver docs/finance.md). Se archiva en su lugar.
  */
 class DeleteCategoryAction extends Action
 {
@@ -31,8 +32,22 @@ class DeleteCategoryAction extends Action
             ->modalHeading('Eliminar categoría')
             ->modalDescription('¿Eliminar esta categoría? Esta acción no se puede deshacer.')
             ->modalSubmitActionLabel('Eliminar')
-            ->action(function (array $arguments, ?Category $record): void {
-                ($record ?? Category::findOrFail($arguments['category']))->delete();
+            ->action(function (array $arguments, ?Category $record, Action $action): void {
+                $category = $record ?? Category::findOrFail($arguments['category']);
+
+                if ($category->hasMovements()) {
+                    Notification::make()
+                        ->title('No se pudo eliminar la categoría')
+                        ->body('Tiene movimientos registrados. Archívala si ya no la usas, para conservar el histórico.')
+                        ->danger()
+                        ->send();
+
+                    $action->halt();
+
+                    return;
+                }
+
+                $category->delete();
             });
     }
 }
