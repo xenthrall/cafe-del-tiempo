@@ -115,18 +115,22 @@ class ManageMovementAction extends Action
                 ->native(false),
 
             Grid::make(2)->schema([
+                // Antes que la categoría a propósito: las categorías ahora
+                // pertenecen a un contexto (ver docs/finance.md), así que
+                // elegir el contexto primero acota las opciones de categoría.
+                Select::make('financial_context_id')
+                    ->label('Contexto financiero (opcional)')
+                    ->options(fn (Get $get): Collection => $this->contextOptions($get('financial_context_id')))
+                    ->live()
+                    ->native(false),
+
                 Select::make('category_id')
                     ->label('Categoría (opcional)')
-                    ->options(fn (Get $get): Collection => $this->categoryOptions($get('type')))
+                    ->options(fn (Get $get): Collection => $this->categoryOptions($get('type'), $get('financial_context_id')))
                     ->visible(fn (Get $get): bool => in_array($get('type'), [
                         MovementType::Income->value,
                         MovementType::Expense->value,
                     ], true))
-                    ->native(false),
-
-                Select::make('financial_context_id')
-                    ->label('Contexto financiero (opcional)')
-                    ->options(fn (): Collection => FinancialContext::query()->orderBy('name')->pluck('name', 'id'))
                     ->native(false),
             ]),
 
@@ -261,13 +265,40 @@ class ManageMovementAction extends Action
     }
 
     /**
+     * Solo contextos activos — uno archivado no debe ofrecerse en movimientos
+     * nuevos (ver docs/finance.md — Contextos archivables) — salvo que sea
+     * justo el que ya tiene el movimiento que se está editando (su valor
+     * actual, vía `Get`; leer `$record` aquí no sirve — los campos anidados
+     * de un schema no lo reciben, solo las utilidades propias del schema
+     * como `Get`, a diferencia de los closures de nivel superior de la
+     * acción como `fillForm()`). Si no, editar el movimiento se lo quitaría
+     * en silencio en cuanto tocara cualquier otro campo.
+     */
+    private function contextOptions(mixed $currentContextId): Collection
+    {
+        return FinancialContext::query()
+            ->where(fn ($query) => $query
+                ->where('is_active', true)
+                ->when($currentContextId, fn ($query) => $query->orWhere('id', $currentContextId)))
+            ->orderBy('name')
+            ->pluck('name', 'id');
+    }
+
+    /**
+     * Categorías del contexto elegido más las generales (sin contexto) —
+     * las categorías ahora pertenecen a un contexto (ver docs/finance.md),
+     * así que acotar por el contexto ya elegido en el formulario es más
+     * intuitivo que mostrar siempre todas las categorías del tipo.
+     *
      * @return Collection<int|string, string>
      */
-    private function categoryOptions(?string $type): Collection
+    private function categoryOptions(?string $type, mixed $contextId): Collection
     {
         if (! in_array($type, [CategoryType::Income->value, CategoryType::Expense->value], true)) {
             return collect();
         }
+
+        $contextId = $contextId ?: null;
 
         // Not flatMap(): it collapses via array_merge and discards integer keys,
         // which are the option values a Select needs to stay bound to the id.
@@ -275,6 +306,9 @@ class ManageMovementAction extends Action
 
         Category::query()
             ->where('type', $type)
+            ->where(fn ($query) => $query
+                ->where('financial_context_id', $contextId)
+                ->when($contextId, fn ($query) => $query->orWhereNull('financial_context_id')))
             ->with(['children' => fn ($query) => $query->orderBy('name')])
             ->whereNull('parent_id')
             ->orderBy('name')

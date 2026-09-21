@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use Filament\Actions\Testing\TestAction;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tequia\Finance\Enums\AccountType;
 use Tequia\Finance\Filament\Resources\Accounts\Pages\ManageAccounts;
@@ -11,17 +13,36 @@ beforeEach(function () {
     $this->actingAs(User::factory()->create());
 });
 
+/**
+ * `fillForm()`/`callAction(..., data:)` don't apply their data to a mounted
+ * action's schema on this page — see ManageMovementsTest::setMovementFormData()
+ * for the same trap. Setting each `mountedActions.0.data.*` path directly does.
+ *
+ * @param  array<string, mixed>  $data
+ */
+function setAccountFormData(Testable $test, array $data): Testable
+{
+    foreach ($data as $key => $value) {
+        $test->set("mountedActions.0.data.{$key}", $value);
+    }
+
+    return $test;
+}
+
 it('renders successfully', function () {
     $this->get(ManageAccounts::getUrl())->assertSuccessful();
 });
 
 it('creates an account with an opening balance', function () {
-    Livewire::test(ManageAccounts::class)
-        ->set('name', 'Nequi')
-        ->set('type', 'digital_wallet')
-        ->set('openingBalance', '150000')
-        ->call('save')
-        ->assertHasNoErrors();
+    $test = Livewire::test(ManageAccounts::class)->mountAction('manageAccount');
+
+    setAccountFormData($test, [
+        'name' => 'Nequi',
+        'type' => 'digital_wallet',
+        'opening_balance' => '150000',
+    ])
+        ->callMountedAction()
+        ->assertHasNoFormErrors();
 
     $account = Account::query()->where('name', 'Nequi')->sole();
 
@@ -33,11 +54,12 @@ it('creates an account with an opening balance', function () {
 it('updates an existing account', function () {
     $account = Account::factory()->create(['name' => 'Efectivo']);
 
-    Livewire::test(ManageAccounts::class)
-        ->call('openEditModal', $account->id)
-        ->set('name', 'Efectivo en casa')
-        ->call('save')
-        ->assertHasNoErrors();
+    $test = Livewire::test(ManageAccounts::class)
+        ->mountAction(TestAction::make('manageAccount')->arguments(['account' => $account->id]));
+
+    setAccountFormData($test, ['name' => 'Efectivo en casa'])
+        ->callMountedAction()
+        ->assertHasNoFormErrors();
 
     expect($account->fresh()->name)->toBe('Efectivo en casa');
 });
@@ -45,7 +67,8 @@ it('updates an existing account', function () {
 it('deletes an account without movements', function () {
     $account = Account::factory()->create();
 
-    Livewire::test(ManageAccounts::class)->call('delete', $account->id);
+    Livewire::test(ManageAccounts::class)
+        ->callAction(TestAction::make('deleteAccount')->arguments(['account' => $account->id]));
 
     expect(Account::query()->find($account->id))->toBeNull();
 });
@@ -54,7 +77,8 @@ it('refuses to delete an account that has movements', function () {
     $account = Account::factory()->create();
     Movement::factory()->expense()->create(['account_id' => $account->id]);
 
-    Livewire::test(ManageAccounts::class)->call('delete', $account->id);
+    Livewire::test(ManageAccounts::class)
+        ->callAction(TestAction::make('deleteAccount')->arguments(['account' => $account->id]));
 
     expect(Account::query()->find($account->id))->not->toBeNull();
 });
