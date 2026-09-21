@@ -11,7 +11,7 @@ Este documento cubre solo lo transversal al proyecto (posicionamiento, principio
 | Módulo | Estado | Documento |
 | --- | --- | --- |
 | `vault` — bóveda de credenciales | Primer módulo, en construcción | [`docs/vault.md`](vault.md) |
-| `finance` — finanzas personales | En planteamiento, esqueleto de módulo creado | [`docs/finance.md`](finance.md) |
+| `finance` — finanzas personales | Fase 1 completa (datos, lógica y UI), lista para probarse | [`docs/finance.md`](finance.md) |
 
 ## Posicionamiento del proyecto (decidido)
 
@@ -41,4 +41,4 @@ Espacio libre para anotar ideas sueltas sin comprometerse a nada, a nivel de pro
 
 ## Roadmap
 
-Sin fases ni fechas todavía a nivel de proyecto. Estado actual por módulo: `vault` tiene cifrado y modelo de datos ya decididos y base suficiente para empezar a construirse (ver [`docs/vault.md`](vault.md#roadmap)); `finance` sigue en fase de planteamiento, cerrando preguntas abiertas antes de proponer modelo de datos (ver [`docs/finance.md`](finance.md#roadmap)).
+Sin fases ni fechas todavía a nivel de proyecto. Estado actual por módulo: `vault` tiene cifrado y modelo de datos ya decididos y base suficiente para empezar a construirse (ver [`docs/vault.md`](vault.md#roadmap)); `finance` ya tiene su fase 1 completa (modelo de datos, lógica de negocio y UI en el panel), pendiente de prueba manual y de correr su suite de tests (ver [`docs/finance.md`](finance.md#roadmap)).
