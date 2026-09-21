@@ -2,9 +2,10 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "cafe-del-tiempo/cafe-del-tiempo",
     "type": "project",
-    "description": "A private digital vault for protecting, preserving, and recovering the information that matters most.",
+    "description": "A self-hosted personal platform for preserving and managing the information that matters most, built as independent modules — starting with a private digital vault.",
     "keywords": [
         "cafe-del-tiempo",
+        "personal-platform",
         "digital-vault",
         "personal-vault",
         "secure-storage",
@@ -12,6 +13,7 @@
         "credential-manager",
         "secrets",
         "encrypted-storage",
+        "personal-finance",
         "privacy",
         "self-hosted",
         "laravel"
