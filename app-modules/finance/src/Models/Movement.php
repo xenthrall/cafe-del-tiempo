@@ -7,17 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Tequia\Finance\Database\Factories\MovementFactory;
 use Tequia\Finance\Enums\MovementType;
+use Tequia\Finance\Models\Concerns\BelongsToUser;
 use Tequia\Finance\Support\Money;
 
 class Movement extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<MovementFactory> */
     use HasFactory;
+
+    protected $table = 'finance_movements';
 
     /**
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'type',
         'account_id',
         'from_account_id',
@@ -90,7 +96,18 @@ class Movement extends Model
 
     public function formattedAmount(): string
     {
-        return Money::format($this->amount, $this->account?->currency ?? $this->fromAccount?->currency ?? 'COP');
+        return Money::format($this->amount, $this->currency());
+    }
+
+    /**
+     * Moneda de la cuenta afectada — la de `account` en ingreso/gasto/ajuste,
+     * la de `fromAccount` en una transferencia (origen y destino comparten
+     * moneda, ver SaveMovement). Se usa también para agrupar totales por
+     * moneda en el dashboard y los informes.
+     */
+    public function currency(): string
+    {
+        return $this->account?->currency ?? $this->fromAccount?->currency ?? 'COP';
     }
 
     /**

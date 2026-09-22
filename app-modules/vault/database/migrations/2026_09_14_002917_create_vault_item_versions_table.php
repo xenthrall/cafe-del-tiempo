@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('vault_item_versions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->foreignId('vault_item_id')->constrained('vault_items')->cascadeOnDelete();
             $table->longText('encrypted_payload');
             $table->unsignedSmallInteger('payload_schema_version')->default(1);

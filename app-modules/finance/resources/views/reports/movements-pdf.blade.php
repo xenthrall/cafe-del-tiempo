@@ -106,22 +106,28 @@
         </div>
     @endif
 
-    <table class="totals">
-        <tr>
-            <td class="income">
-                <span class="label">Ingresos</span>
-                <span class="value">{{ $totals['income'] }}</span>
-            </td>
-            <td class="expense">
-                <span class="label">Gastos</span>
-                <span class="value">{{ $totals['expense'] }}</span>
-            </td>
-            <td>
-                <span class="label">Neto</span>
-                <span class="value">{{ $totals['net'] }}</span>
-            </td>
-        </tr>
-    </table>
+    @if (filled($totals))
+        {{-- Una fila por moneda entre los movimientos filtrados (casi siempre una sola) —
+             sin conversión automática, un solo total mezclando monedas no tendría sentido. --}}
+        <table class="totals">
+            @foreach ($totals as $currencyTotals)
+                <tr>
+                    <td class="income">
+                        <span class="label">Ingresos @if (count($totals) > 1) ({{ $currencyTotals['currency'] }}) @endif</span>
+                        <span class="value">{{ $currencyTotals['income'] }}</span>
+                    </td>
+                    <td class="expense">
+                        <span class="label">Gastos @if (count($totals) > 1) ({{ $currencyTotals['currency'] }}) @endif</span>
+                        <span class="value">{{ $currencyTotals['expense'] }}</span>
+                    </td>
+                    <td>
+                        <span class="label">Neto @if (count($totals) > 1) ({{ $currencyTotals['currency'] }}) @endif</span>
+                        <span class="value">{{ $currencyTotals['net'] }}</span>
+                    </td>
+                </tr>
+            @endforeach
+        </table>
+    @endif
 
     @if ($movements->isEmpty())
         <p class="empty">No hay movimientos con los filtros aplicados.</p>

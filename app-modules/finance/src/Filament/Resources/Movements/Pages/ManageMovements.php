@@ -234,4 +234,17 @@ class ManageMovements extends Page implements HasTable
 
         return $summary;
     }
+
+    /**
+     * Cuántos de los filtros en el panel colapsable (periodo, contexto,
+     * categoría) están activos — para el badge del botón "Filtros" en móvil
+     * (ver manage-movements.blade.php). No cuenta `activeType`: esas son las
+     * pestañas de tipo, que quedan siempre visibles fuera del panel.
+     */
+    public function activeFilterCount(): int
+    {
+        return collect([$this->periodPreset, $this->contextId, $this->categoryId])
+            ->filter(fn (mixed $value): bool => filled($value))
+            ->count();
+    }
 }

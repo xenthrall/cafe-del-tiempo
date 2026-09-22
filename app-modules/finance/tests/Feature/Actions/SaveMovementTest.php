@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Validation\ValidationException;
 use Tequia\Finance\Actions\SaveMovement;
 use Tequia\Finance\Enums\CategoryType;
@@ -8,6 +9,10 @@ use Tequia\Finance\Models\Account;
 use Tequia\Finance\Models\Category;
 use Tequia\Finance\Models\FinancialContext;
 use Tequia\Finance\Models\Movement;
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->create());
+});
 
 it('creates an income movement scoped to a single account', function () {
     $account = Account::factory()->create();
@@ -45,6 +50,19 @@ it('nulls the account and category fields for a transfer', function () {
         ->and($movement->from_account_id)->toBe($source->id)
         ->and($movement->to_account_id)->toBe($destination->id);
 });
+
+it('rejects a transfer between accounts of different currencies', function () {
+    $source = Account::factory()->create(['currency' => 'COP']);
+    $destination = Account::factory()->create(['currency' => 'USD']);
+
+    (new SaveMovement)->create([
+        'type' => 'transfer',
+        'from_account_id' => $source->id,
+        'to_account_id' => $destination->id,
+        'amount' => 50,
+        'date' => '2026-01-10',
+    ]);
+})->throws(ValidationException::class);
 
 it('rejects a transfer to the same account', function () {
     $account = Account::factory()->create();

@@ -8,16 +8,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Tequia\Finance\Database\Factories\CategoryFactory;
 use Tequia\Finance\Enums\CategoryType;
+use Tequia\Finance\Models\Concerns\BelongsToUser;
 
 class Category extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<CategoryFactory> */
     use HasFactory;
+
+    protected $table = 'finance_categories';
 
     /**
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'name',
         'type',
         'parent_id',

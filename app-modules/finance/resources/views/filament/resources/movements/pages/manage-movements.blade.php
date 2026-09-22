@@ -33,8 +33,18 @@
             </div>
         </div>
 
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div class="flex flex-wrap items-center gap-2">
+        <div x-data="{ open: false }" class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <button
+                type="button"
+                x-on:click="open = ! open"
+                class="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 lg:hidden"
+            >
+                <x-filament::icon icon="heroicon-o-funnel" class="h-4 w-4" />
+                Filtros{{ $this->activeFilterCount() ? " ({$this->activeFilterCount()})" : '' }}
+                <x-filament::icon icon="heroicon-o-chevron-down" x-bind:class="open && 'rotate-180'" class="h-3.5 w-3.5 transition-transform" />
+            </button>
+
+            <div :class="open ? 'flex' : 'hidden'" class="flex-col flex-wrap items-center gap-2 lg:flex lg:flex-row">
                 <div class="w-full sm:w-44">
                     <x-filament::input.wrapper>
                         <x-filament::input.select wire:model.live="periodPreset">

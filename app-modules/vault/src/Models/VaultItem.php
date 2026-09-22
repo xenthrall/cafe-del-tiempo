@@ -9,9 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Tequia\Vault\Database\Factories\VaultItemFactory;
 use Tequia\Vault\Enums\VaultItemType;
+use Tequia\Vault\Models\Concerns\BelongsToUser;
 
 class VaultItem extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<VaultItemFactory> */
     use HasFactory;
 
@@ -21,6 +24,7 @@ class VaultItem extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'type',
         'folder_id',
         'is_favorite',

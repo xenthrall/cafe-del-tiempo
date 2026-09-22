@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Tequia\Vault\Database\Factories\VaultItemVersionFactory;
+use Tequia\Vault\Models\Concerns\BelongsToUser;
 
 class VaultItemVersion extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<VaultItemVersionFactory> */
     use HasFactory;
 
@@ -21,6 +24,7 @@ class VaultItemVersion extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'vault_item_id',
         'encrypted_payload',
         'payload_schema_version',

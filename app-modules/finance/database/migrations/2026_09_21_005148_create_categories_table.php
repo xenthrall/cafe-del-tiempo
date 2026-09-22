@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
+        Schema::create('finance_categories', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->string('name');
             $table->string('type');
-            $table->foreignId('parent_id')->nullable()->constrained('categories')->nullOnDelete();
-            $table->foreignId('financial_context_id')->nullable()->constrained('financial_contexts')->nullOnDelete();
+            $table->foreignId('parent_id')->nullable()->constrained('finance_categories')->nullOnDelete();
+            $table->foreignId('financial_context_id')->nullable()->constrained('finance_financial_contexts')->nullOnDelete();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -27,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('finance_categories');
     }
 };

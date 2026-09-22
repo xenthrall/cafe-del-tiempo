@@ -20,7 +20,9 @@ it('sums the balance of every account into the total balance', function () {
 
     $component = Livewire::test(FinanceDashboard::class);
 
-    expect($component->get('totalBalance'))->toBe('$ 150,00');
+    expect($component->get('totalBalances'))->toBe([
+        ['currency' => 'COP', 'formatted' => '$ 150,00'],
+    ]);
 });
 
 it('sums this month income and expense movements separately', function () {
@@ -32,8 +34,17 @@ it('sums this month income and expense movements separately', function () {
 
     $component = Livewire::test(FinanceDashboard::class);
 
-    expect($component->get('monthIncome'))->toBe('$ 200,00')
-        ->and($component->get('monthExpense'))->toBe('$ 80,00')
-        ->and($component->get('monthNet'))->toBe('$ 120,00')
-        ->and($component->get('monthNetIsNegative'))->toBeFalse();
+    expect($component->get('periodIncomes'))->toBe([['currency' => 'COP', 'formatted' => '$ 200,00']])
+        ->and($component->get('periodExpenses'))->toBe([['currency' => 'COP', 'formatted' => '$ 80,00']])
+        ->and($component->get('periodNets'))->toBe([['currency' => 'COP', 'formatted' => '$ 120,00', 'isNegative' => false]]);
+});
+
+it('keeps balances of different currencies separate instead of mixing them', function () {
+    Account::factory()->create(['currency' => 'COP', 'opening_balance' => 100]);
+    Account::factory()->create(['currency' => 'USD', 'opening_balance' => 10]);
+
+    $component = Livewire::test(FinanceDashboard::class);
+
+    expect(collect($component->get('totalBalances'))->pluck('formatted', 'currency')->all())
+        ->toBe(['COP' => '$ 100,00', 'USD' => 'US$ 10,00']);
 });

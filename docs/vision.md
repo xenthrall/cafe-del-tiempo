@@ -41,4 +41,4 @@ Espacio libre para anotar ideas sueltas sin comprometerse a nada, a nivel de pro
 
 ## Roadmap
 
-Sin fases ni fechas todavía a nivel de proyecto. Estado actual por módulo: `vault` tiene cifrado y modelo de datos ya decididos y base suficiente para empezar a construirse (ver [`docs/vault.md`](vault.md#roadmap)); `finance` ya tiene su fase 1 completa (modelo de datos, lógica de negocio y UI en el panel), pendiente de prueba manual y de correr su suite de tests (ver [`docs/finance.md`](finance.md#roadmap)).
+Sin fases ni fechas todavía a nivel de proyecto. `vault` y `finance` están implementados y son multiusuario (cada usuario ve solo sus propios datos) — ver el estado actual de cada uno en su propio documento ([`docs/vault.md`](vault.md), [`docs/finance.md`](finance.md)).

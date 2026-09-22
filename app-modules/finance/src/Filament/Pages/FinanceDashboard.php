@@ -64,15 +64,31 @@ class FinanceDashboard extends Page
     #[Url(as: 'context', except: null)]
     public ?int $contextId = null;
 
-    public string $totalBalance = '$ 0,00';
+    /**
+     * KPIs "por moneda" en vez de un solo total (ver docs/finance.md —
+     * Multi-moneda): sin conversión automática, sumar cuentas/movimientos de
+     * monedas distintas como si fueran una sola sería un número sin sentido.
+     * Con una sola moneda en uso (el caso normal) cada arreglo trae una sola
+     * entrada y la vista se ve igual que antes.
+     *
+     * @var array<int, array{currency: string, formatted: string}>
+     */
+    public array $totalBalances = [];
 
-    public string $periodIncome = '$ 0,00';
+    /**
+     * @var array<int, array{currency: string, formatted: string}>
+     */
+    public array $periodIncomes = [];
 
-    public string $periodExpense = '$ 0,00';
+    /**
+     * @var array<int, array{currency: string, formatted: string}>
+     */
+    public array $periodExpenses = [];
 
-    public string $periodNet = '$ 0,00';
-
-    public bool $periodNetIsNegative = false;
+    /**
+     * @var array<int, array{currency: string, formatted: string, isNegative: bool}>
+     */
+    public array $periodNets = [];
 
     /**
      * @var array<int, array<string, mixed>>
@@ -80,7 +96,10 @@ class FinanceDashboard extends Page
     public array $accounts = [];
 
     /**
-     * @var array<int, array<string, mixed>>
+     * Igual que los KPIs, agrupado por moneda — una entrada por moneda en
+     * uso, cada una con sus 6 meses.
+     *
+     * @var array<string, array<int, array<string, mixed>>>
      */
     public array $monthlyCashflow = [];
 
@@ -91,9 +110,10 @@ class FinanceDashboard extends Page
 
     /**
      * "Gastos por contexto" sin filtro de contexto, "Gastos por categoría"
-     * cuando ya se filtró a un contexto — ver `loadBreakdown()`.
+     * cuando ya se filtró a un contexto — ver `loadBreakdown()`. Agrupado
+     * por moneda igual que los KPIs (ver `$totalBalances`).
      *
-     * @var array<int, array<string, mixed>>
+     * @var array<string, array<int, array<string, mixed>>>
      */
     public array $expenseBreakdown = [];
 
@@ -102,7 +122,7 @@ class FinanceDashboard extends Page
     /**
      * Mismo criterio que `$expenseBreakdown`, para ingresos.
      *
-     * @var array<int, array<string, mixed>>
+     * @var array<string, array<int, array<string, mixed>>>
      */
     public array $incomeBreakdown = [];
 
@@ -191,6 +211,18 @@ class FinanceDashboard extends Page
         return FinancialContext::query()->orderBy('name')->pluck('name', 'id');
     }
 
+    /**
+     * Cuántos filtros del panel colapsable (periodo, contexto) están activos
+     * — para el badge del botón "Filtros" en móvil (ver finance-dashboard.blade.php).
+     * 'month' es el default de $periodPreset, no cuenta como filtro activo.
+     */
+    public function activeFilterCount(): int
+    {
+        return collect([$this->periodPreset !== 'month', filled($this->contextId)])
+            ->filter()
+            ->count();
+    }
+
     public function manageMovementAction(): ManageMovementAction
     {
         return ManageMovementAction::make()->after(fn () => $this->refreshDashboard());
@@ -227,9 +259,20 @@ class FinanceDashboard extends Page
             ->orderBy('name')
             ->get();
 
-        $total = $accounts->reduce(fn (string $carry, Account $account): string => bcadd($carry, $account->balance(), 2), '0');
+        $balancesByCurrency = $accounts
+            ->groupBy('currency')
+            ->map(fn (Collection $group): string => $group->reduce(
+                fn (string $carry, Account $account): string => bcadd($carry, $account->balance(), 2),
+                '0',
+            ));
 
-        $this->totalBalance = Money::format($total);
+        $this->totalBalances = $this->activeCurrencies()
+            ->map(fn (string $currency): array => [
+                'currency' => $currency,
+                'formatted' => Money::format($balancesByCurrency->get($currency, '0'), $currency),
+            ])
+            ->values()
+            ->all();
 
         $this->accounts = $accounts
             ->map(fn (Account $account): array => [
@@ -248,55 +291,106 @@ class FinanceDashboard extends Page
         [$start, $end] = $this->periodDateRange();
 
         $baseQuery = fn (MovementType $type) => Movement::query()
+            ->with('account:id,currency')
             ->where('type', $type)
             ->when($start, fn ($query) => $query->whereDate('date', '>=', $start))
             ->when($end, fn ($query) => $query->whereDate('date', '<=', $end))
             ->when($this->contextId, fn ($query) => $query->where('financial_context_id', $this->contextId));
 
-        $income = (string) $baseQuery(MovementType::Income)->sum('amount');
-        $expense = (string) $baseQuery(MovementType::Expense)->sum('amount');
-        $net = bcsub($income, $expense, 2);
+        $incomeByCurrency = $baseQuery(MovementType::Income)->get()
+            ->groupBy(fn (Movement $movement): string => $movement->currency())
+            ->map(fn (Collection $group): string => (string) $group->sum('amount'));
 
-        $this->periodIncome = Money::format($income);
-        $this->periodExpense = Money::format($expense);
-        $this->periodNet = Money::format($net);
-        $this->periodNetIsNegative = bccomp($net, '0', 2) < 0;
+        $expenseByCurrency = $baseQuery(MovementType::Expense)->get()
+            ->groupBy(fn (Movement $movement): string => $movement->currency())
+            ->map(fn (Collection $group): string => (string) $group->sum('amount'));
+
+        $currencies = $incomeByCurrency->keys()->merge($expenseByCurrency->keys())->unique();
+        $currencies = $currencies->isEmpty() ? $this->activeCurrencies() : $currencies->sort()->values();
+
+        $this->periodIncomes = $currencies->map(fn (string $currency): array => [
+            'currency' => $currency,
+            'formatted' => Money::format($incomeByCurrency->get($currency, '0'), $currency),
+        ])->all();
+
+        $this->periodExpenses = $currencies->map(fn (string $currency): array => [
+            'currency' => $currency,
+            'formatted' => Money::format($expenseByCurrency->get($currency, '0'), $currency),
+        ])->all();
+
+        $this->periodNets = $currencies->map(function (string $currency) use ($incomeByCurrency, $expenseByCurrency): array {
+            $net = bcsub($incomeByCurrency->get($currency, '0'), $expenseByCurrency->get($currency, '0'), 2);
+
+            return [
+                'currency' => $currency,
+                'formatted' => Money::format($net, $currency),
+                'isNegative' => bccomp($net, '0', 2) < 0,
+            ];
+        })->all();
     }
 
     private function loadMonthlyCashflow(): void
     {
-        $summaries = collect(range(5, 0))
-            ->map(fn (int $offset): Carbon => now()->subMonths($offset)->startOfMonth())
-            ->map(function (Carbon $month): array {
-                $start = $month->copy()->startOfMonth();
-                $end = $month->copy()->endOfMonth();
+        $months = collect(range(5, 0))->map(fn (int $offset): Carbon => now()->subMonths($offset)->startOfMonth());
 
-                $baseQuery = fn (MovementType $type) => Movement::query()
-                    ->where('type', $type)
-                    ->whereBetween('date', [$start, $end])
-                    ->when($this->contextId, fn ($query) => $query->where('financial_context_id', $this->contextId));
+        $this->monthlyCashflow = $this->activeCurrencies()
+            ->mapWithKeys(fn (string $currency): array => [$currency => $this->monthlyCashflowForCurrency($currency, $months)])
+            ->all();
+    }
 
-                $income = (float) $baseQuery(MovementType::Income)->sum('amount');
-                $expense = (float) $baseQuery(MovementType::Expense)->sum('amount');
+    /**
+     * @param  Collection<int, Carbon>  $months
+     * @return array<int, array<string, mixed>>
+     */
+    private function monthlyCashflowForCurrency(string $currency, Collection $months): array
+    {
+        $summaries = $months->map(function (Carbon $month) use ($currency): array {
+            $start = $month->copy()->startOfMonth();
+            $end = $month->copy()->endOfMonth();
 
-                return [
-                    'label' => ucfirst($month->translatedFormat('M Y')),
-                    'income' => $income,
-                    'expense' => $expense,
-                    'formattedIncome' => Money::format($income),
-                    'formattedExpense' => Money::format($expense),
-                ];
-            });
+            $baseQuery = fn (MovementType $type) => Movement::query()
+                ->whereHas('account', fn ($query) => $query->where('currency', $currency))
+                ->where('type', $type)
+                ->whereBetween('date', [$start, $end])
+                ->when($this->contextId, fn ($query) => $query->where('financial_context_id', $this->contextId));
+
+            $income = (float) $baseQuery(MovementType::Income)->sum('amount');
+            $expense = (float) $baseQuery(MovementType::Expense)->sum('amount');
+
+            return [
+                'label' => ucfirst($month->translatedFormat('M Y')),
+                'income' => $income,
+                'expense' => $expense,
+                'formattedIncome' => Money::format($income, $currency),
+                'formattedExpense' => Money::format($expense, $currency),
+            ];
+        });
 
         $max = $summaries->flatMap(fn (array $summary): array => [$summary['income'], $summary['expense']])->max() ?: 1;
 
-        $this->monthlyCashflow = $summaries
+        return $summaries
             ->map(fn (array $summary): array => [
                 ...$summary,
                 'incomePercent' => $max > 0 ? (int) round(($summary['income'] / $max) * 100) : 0,
                 'expensePercent' => $max > 0 ? (int) round(($summary['expense'] / $max) * 100) : 0,
             ])
             ->all();
+    }
+
+    /**
+     * Monedas en uso — todas las de las cuentas del usuario, sin duplicar.
+     * Respaldo cuando un cálculo por moneda no encuentra ninguna (sin
+     * cuentas, o sin movimientos en el rango filtrado): antes siempre había
+     * un solo total, aunque fuera "$ 0,00" — con esto las tarjetas no
+     * quedan vacías en ese caso.
+     *
+     * @return Collection<int, string>
+     */
+    private function activeCurrencies(): Collection
+    {
+        $currencies = Account::query()->distinct()->pluck('currency');
+
+        return $currencies->isEmpty() ? collect(['COP']) : $currencies->values();
     }
 
     private function loadRecentMovements(): void
@@ -346,13 +440,14 @@ class FinanceDashboard extends Page
      * Usado tanto para gastos como para ingresos (ver `loadExpenseBreakdown()`/
      * `loadIncomeBreakdown()`).
      *
-     * @return array{0: string, 1: array<int, array<string, mixed>>}
+     * @return array{0: string, 1: array<string, array<int, array<string, mixed>>>}
      */
     private function loadBreakdown(MovementType $type, string $noun): array
     {
         [$start, $end] = $this->periodDateRange();
 
         $query = Movement::query()
+            ->with('account:id,currency')
             ->where('type', $type)
             ->when($start, fn ($q) => $q->whereDate('date', '>=', $start))
             ->when($end, fn ($q) => $q->whereDate('date', '<=', $end))
@@ -360,32 +455,34 @@ class FinanceDashboard extends Page
 
         if ($this->contextId) {
             $label = "{$noun} por categoría";
-
-            $rows = $query->with('category')
-                ->get()
-                ->groupBy(fn (Movement $movement): string => $movement->category?->name ?? 'Sin categoría');
+            $movements = $query->with('category')->get();
+            $groupName = fn (Movement $movement): string => $movement->category?->name ?? 'Sin categoría';
         } else {
             $label = "{$noun} por contexto";
-
-            $rows = $query->with('financialContext')
-                ->get()
-                ->groupBy(fn (Movement $movement): string => $movement->financialContext?->name ?? 'Sin contexto');
+            $movements = $query->with('financialContext')->get();
+            $groupName = fn (Movement $movement): string => $movement->financialContext?->name ?? 'Sin contexto';
         }
 
-        $rows = $rows
-            ->map(fn (Collection $movements, string $name): array => ['name' => $name, 'total' => (float) $movements->sum('amount')])
-            ->sortByDesc('total')
-            ->take(5)
-            ->values();
+        $breakdown = $movements
+            ->groupBy(fn (Movement $movement): string => $movement->currency())
+            ->map(function (Collection $currencyMovements, string $currency) use ($groupName): array {
+                $rows = $currencyMovements
+                    ->groupBy($groupName)
+                    ->map(fn (Collection $movements, string $name): array => ['name' => $name, 'total' => (float) $movements->sum('amount')])
+                    ->sortByDesc('total')
+                    ->take(5)
+                    ->values();
 
-        $max = $rows->max('total') ?: 1;
+                $max = $rows->max('total') ?: 1;
 
-        $breakdown = $rows
-            ->map(fn (array $row): array => [
-                ...$row,
-                'formattedTotal' => Money::format($row['total']),
-                'percent' => $max > 0 ? (int) round(($row['total'] / $max) * 100) : 0,
-            ])
+                return $rows
+                    ->map(fn (array $row): array => [
+                        ...$row,
+                        'formattedTotal' => Money::format($row['total'], $currency),
+                        'percent' => $max > 0 ? (int) round(($row['total'] / $max) * 100) : 0,
+                    ])
+                    ->all();
+            })
             ->all();
 
         return [$label, $breakdown];
