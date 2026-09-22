@@ -25,6 +25,8 @@
         "internachi/modular": "^3.0",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
+        "league/flysystem-aws-s3-v3": "^3.35",
+        "spatie/laravel-backup": "^10.3",
         "tequia/app": "*",
         "tequia/finance": "*",
         "tequia/system": "*",
