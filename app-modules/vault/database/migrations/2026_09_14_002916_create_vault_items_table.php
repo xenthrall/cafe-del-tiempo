@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('vault_items', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->string('type');
             $table->foreignId('folder_id')->nullable()->constrained('vault_folders')->nullOnDelete();
             $table->boolean('is_favorite')->default(false);

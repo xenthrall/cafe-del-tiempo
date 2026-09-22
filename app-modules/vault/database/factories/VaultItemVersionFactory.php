@@ -2,6 +2,7 @@
 
 namespace Tequia\Vault\Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Tequia\Vault\Models\VaultItem;
 use Tequia\Vault\Models\VaultItemVersion;
@@ -21,6 +22,7 @@ class VaultItemVersionFactory extends Factory
     public function definition(): array
     {
         return [
+            'user_id' => User::factory(),
             'vault_item_id' => VaultItem::factory(),
             'encrypted_payload' => base64_encode(fake()->sentence()),
             'payload_schema_version' => 1,

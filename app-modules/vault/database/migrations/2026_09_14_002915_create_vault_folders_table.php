@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('vault_folders', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->text('encrypted_name');
             $table->unsignedSmallInteger('payload_schema_version')->default(1);
             $table->timestamps();

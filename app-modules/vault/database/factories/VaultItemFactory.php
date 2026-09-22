@@ -2,6 +2,7 @@
 
 namespace Tequia\Vault\Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Tequia\Vault\Enums\VaultItemType;
 use Tequia\Vault\Models\VaultItem;
@@ -21,6 +22,7 @@ class VaultItemFactory extends Factory
     public function definition(): array
     {
         return [
+            'user_id' => User::factory(),
             'type' => fake()->randomElement(VaultItemType::cases()),
             'folder_id' => null,
             'is_favorite' => false,

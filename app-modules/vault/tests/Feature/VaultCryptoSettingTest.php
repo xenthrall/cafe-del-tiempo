@@ -1,6 +1,11 @@
 <?php
 
+use App\Models\User;
 use Tequia\Vault\Models\VaultCryptoSetting;
+
+beforeEach(function () {
+    $this->actingAs(User::factory()->create());
+});
 
 it('returns null when no crypto settings exist yet', function () {
     expect(VaultCryptoSetting::current())->toBeNull();

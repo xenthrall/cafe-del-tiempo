@@ -6,6 +6,7 @@ use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Tequia\Vault\Enums\VaultItemType;
 use Tequia\Vault\Models\VaultCryptoSetting;
 use Tequia\Vault\Models\VaultFolder;
@@ -72,7 +73,7 @@ class VaultDashboard extends Page
             ],
             [
                 'type' => ['required', 'string', 'in:'.implode(',', array_column(VaultItemType::cases(), 'value'))],
-                'folder_id' => ['nullable', 'integer', 'exists:vault_folders,id'],
+                'folder_id' => ['nullable', 'integer', Rule::exists('vault_folders', 'id')->where('user_id', auth()->id())],
                 'encrypted_payload' => ['required', 'string'],
             ],
         )->validate();
@@ -97,8 +98,8 @@ class VaultDashboard extends Page
                 'encrypted_payload' => $encryptedPayload,
             ],
             [
-                'item_id' => ['required', 'integer', 'exists:vault_items,id'],
-                'folder_id' => ['nullable', 'integer', 'exists:vault_folders,id'],
+                'item_id' => ['required', 'integer', Rule::exists('vault_items', 'id')->where('user_id', auth()->id())],
+                'folder_id' => ['nullable', 'integer', Rule::exists('vault_folders', 'id')->where('user_id', auth()->id())],
                 'encrypted_payload' => ['required', 'string'],
             ],
         )->validate();

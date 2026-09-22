@@ -5,14 +5,19 @@ namespace Tequia\Vault\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Tequia\Vault\Database\Factories\VaultCryptoSettingFactory;
+use Tequia\Vault\Models\Concerns\BelongsToUser;
 
 /**
- * Single-row table (single-user vault): holds the Argon2id salt and KDF
- * parameters clients need to re-derive the vault encryption key. None of
- * this is secret — the server never sees the master password or the key.
+ * One row per user (`user_id` unique): holds the Argon2id salt and KDF
+ * parameters clients need to re-derive that user's vault encryption key.
+ * None of this is secret — the server never sees the master password or
+ * the key. `current()` relies on the `BelongsToUser` scope to resolve to
+ * the authenticated user's own row.
  */
 class VaultCryptoSetting extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<VaultCryptoSettingFactory> */
     use HasFactory;
 
@@ -32,6 +37,7 @@ class VaultCryptoSetting extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'key_salt',
         'kdf_memory_cost',
         'kdf_iterations',

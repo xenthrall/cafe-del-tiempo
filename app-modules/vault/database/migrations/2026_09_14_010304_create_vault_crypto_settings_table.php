@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('vault_crypto_settings', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->unique()->constrained('users')->restrictOnDelete();
             $table->text('key_salt');
             $table->unsignedInteger('kdf_memory_cost');
             $table->unsignedInteger('kdf_iterations');

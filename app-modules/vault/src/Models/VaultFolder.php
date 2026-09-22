@@ -6,9 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Tequia\Vault\Database\Factories\VaultFolderFactory;
+use Tequia\Vault\Models\Concerns\BelongsToUser;
 
 class VaultFolder extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<VaultFolderFactory> */
     use HasFactory;
 
@@ -16,6 +19,7 @@ class VaultFolder extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'encrypted_name',
         'payload_schema_version',
     ];
