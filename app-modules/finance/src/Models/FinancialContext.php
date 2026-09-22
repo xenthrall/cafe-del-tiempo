@@ -6,16 +6,22 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Tequia\Finance\Database\Factories\FinancialContextFactory;
+use Tequia\Finance\Models\Concerns\BelongsToUser;
 
 class FinancialContext extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<FinancialContextFactory> */
     use HasFactory;
+
+    protected $table = 'finance_financial_contexts';
 
     /**
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'name',
         'is_active',
     ];

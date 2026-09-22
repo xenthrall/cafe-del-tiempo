@@ -57,7 +57,7 @@ class SaveMovement
     {
         $shared = [
             'type' => ['required', Rule::enum(MovementType::class)],
-            'financial_context_id' => ['nullable', 'integer', 'exists:financial_contexts,id'],
+            'financial_context_id' => ['nullable', 'integer', 'exists:finance_financial_contexts,id'],
             'date' => ['required', 'date'],
             'description' => ['nullable', 'string', 'max:255'],
         ];
@@ -65,19 +65,19 @@ class SaveMovement
         return match ($type) {
             MovementType::Transfer => [
                 ...$shared,
-                'from_account_id' => ['required', 'integer', 'different:to_account_id', 'exists:accounts,id'],
-                'to_account_id' => ['required', 'integer', 'exists:accounts,id'],
+                'from_account_id' => ['required', 'integer', 'different:to_account_id', 'exists:finance_accounts,id'],
+                'to_account_id' => ['required', 'integer', 'exists:finance_accounts,id'],
                 'amount' => ['required', 'numeric', 'gt:0'],
             ],
             MovementType::Adjustment => [
                 ...$shared,
-                'account_id' => ['required', 'integer', 'exists:accounts,id'],
+                'account_id' => ['required', 'integer', 'exists:finance_accounts,id'],
                 'amount' => ['required', 'numeric', 'not_in:0'],
             ],
             MovementType::Income, MovementType::Expense => [
                 ...$shared,
-                'account_id' => ['required', 'integer', 'exists:accounts,id'],
-                'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where('type', $type->value)],
+                'account_id' => ['required', 'integer', 'exists:finance_accounts,id'],
+                'category_id' => ['nullable', 'integer', Rule::exists('finance_categories', 'id')->where('type', $type->value)],
                 'amount' => ['required', 'numeric', 'gt:0'],
             ],
         };

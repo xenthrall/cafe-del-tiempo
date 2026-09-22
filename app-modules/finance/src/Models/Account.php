@@ -8,17 +8,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Tequia\Finance\Database\Factories\AccountFactory;
 use Tequia\Finance\Enums\AccountType;
 use Tequia\Finance\Enums\MovementType;
+use Tequia\Finance\Models\Concerns\BelongsToUser;
 use Tequia\Finance\Support\Money;
 
 class Account extends Model
 {
+    use BelongsToUser;
+
     /** @use HasFactory<AccountFactory> */
     use HasFactory;
+
+    protected $table = 'finance_accounts';
 
     /**
      * @var list<string>
      */
     protected $fillable = [
+        'user_id',
         'name',
         'type',
         'currency',

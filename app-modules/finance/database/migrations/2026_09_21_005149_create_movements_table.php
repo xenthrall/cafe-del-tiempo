@@ -11,14 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('movements', function (Blueprint $table) {
+        Schema::create('finance_movements', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->string('type');
-            $table->foreignId('account_id')->nullable()->constrained('accounts')->restrictOnDelete();
-            $table->foreignId('from_account_id')->nullable()->constrained('accounts')->restrictOnDelete();
-            $table->foreignId('to_account_id')->nullable()->constrained('accounts')->restrictOnDelete();
-            $table->foreignId('category_id')->nullable()->constrained('categories')->restrictOnDelete();
-            $table->foreignId('financial_context_id')->nullable()->constrained('financial_contexts')->restrictOnDelete();
+            $table->foreignId('account_id')->nullable()->constrained('finance_accounts')->restrictOnDelete();
+            $table->foreignId('from_account_id')->nullable()->constrained('finance_accounts')->restrictOnDelete();
+            $table->foreignId('to_account_id')->nullable()->constrained('finance_accounts')->restrictOnDelete();
+            $table->foreignId('category_id')->nullable()->constrained('finance_categories')->restrictOnDelete();
+            $table->foreignId('financial_context_id')->nullable()->constrained('finance_financial_contexts')->restrictOnDelete();
             $table->decimal('amount', 14, 2);
             $table->date('date');
             $table->string('description')->nullable();
@@ -31,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('movements');
+        Schema::dropIfExists('finance_movements');
     }
 };

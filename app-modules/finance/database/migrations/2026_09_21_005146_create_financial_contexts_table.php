@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('financial_contexts', function (Blueprint $table) {
+        Schema::create('finance_financial_contexts', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->string('name');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
@@ -24,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('financial_contexts');
+        Schema::dropIfExists('finance_financial_contexts');
     }
 };
