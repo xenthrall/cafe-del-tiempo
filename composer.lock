@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "95191cde247ca38240da0d010e4f4c98",
+    "content-hash": "8007dfeebe4abac038edab1967086b03",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -9793,6 +9793,38 @@
                     "Tequia\\Finance\\Tests\\": "tests/",
                     "Tequia\\Finance\\Database\\Factories\\": "database/factories/",
                     "Tequia\\Finance\\Database\\Seeders\\": "database/seeders/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "tequia/system",
+            "version": "1.0",
+            "dist": {
+                "type": "path",
+                "url": "app-modules/system",
+                "reference": "4e5672ee4432378c44dd79b5c2509ef59ca1b091"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Tequia\\System\\Providers\\SystemServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Tequia\\System\\": "src/",
+                    "Tequia\\System\\Tests\\": "tests/",
+                    "Tequia\\System\\Database\\Factories\\": "database/factories/",
+                    "Tequia\\System\\Database\\Seeders\\": "database/seeders/"
                 }
             },
             "license": [

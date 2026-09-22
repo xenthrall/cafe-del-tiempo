@@ -27,6 +27,7 @@
         "laravel/tinker": "^3.0",
         "tequia/app": "*",
         "tequia/finance": "*",
+        "tequia/system": "*",
         "tequia/vault": "*"
     },
     "require-dev": {

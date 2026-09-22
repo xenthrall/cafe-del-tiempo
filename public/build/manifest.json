@@ -45,6 +45,15 @@
     "src": "resources/css/filament/app/theme.css",
     "isEntry": true
   },
+  "resources/css/filament/system/theme.css": {
+    "file": "assets/theme-GJHTAkUV.css",
+    "name": "theme",
+    "names": [
+      "theme.css"
+    ],
+    "src": "resources/css/filament/system/theme.css",
+    "isEntry": true
+  },
   "resources/js/app.js": {
     "file": "assets/app-BvRk9kiK.js",
     "name": "app",
