@@ -4,15 +4,11 @@ namespace Tequia\System\Filament\Resources\Users;
 
 use App\Models\User;
 use BackedEnum;
+use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
-use Tequia\System\Filament\Resources\Users\Pages\CreateUser;
-use Tequia\System\Filament\Resources\Users\Pages\EditUser;
-use Tequia\System\Filament\Resources\Users\Pages\ListUsers;
-use Tequia\System\Filament\Resources\Users\Schemas\UserForm;
-use Tequia\System\Filament\Resources\Users\Tables\UsersTable;
+use Tequia\System\Filament\Resources\Users\Pages\ManageUsers;
+use UnitEnum;
 
 class UserResource extends Resource
 {
@@ -22,35 +18,21 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Usuarios';
 
+    protected static string|UnitEnum|null $navigationGroup = 'Administración';
+
     protected static ?string $modelLabel = 'usuario';
 
     protected static ?string $pluralModelLabel = 'usuarios';
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    public static function form(Schema $schema): Schema
-    {
-        return UserForm::configure($schema);
-    }
-
-    public static function table(Table $table): Table
-    {
-        return UsersTable::configure($table);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
+    /**
+     * @return array<string, PageRegistration>
+     */
     public static function getPages(): array
     {
         return [
-            'index' => ListUsers::route('/'),
-            'create' => CreateUser::route('/create'),
-            'edit' => EditUser::route('/{record}/edit'),
+            'index' => ManageUsers::route('/'),
         ];
     }
 }
