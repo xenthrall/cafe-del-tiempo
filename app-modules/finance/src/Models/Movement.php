@@ -96,7 +96,18 @@ class Movement extends Model
 
     public function formattedAmount(): string
     {
-        return Money::format($this->amount, $this->account?->currency ?? $this->fromAccount?->currency ?? 'COP');
+        return Money::format($this->amount, $this->currency());
+    }
+
+    /**
+     * Moneda de la cuenta afectada — la de `account` en ingreso/gasto/ajuste,
+     * la de `fromAccount` en una transferencia (origen y destino comparten
+     * moneda, ver SaveMovement). Se usa también para agrupar totales por
+     * moneda en el dashboard y los informes.
+     */
+    public function currency(): string
+    {
+        return $this->account?->currency ?? $this->fromAccount?->currency ?? 'COP';
     }
 
     /**

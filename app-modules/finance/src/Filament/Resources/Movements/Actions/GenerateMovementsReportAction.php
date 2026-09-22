@@ -93,7 +93,7 @@ class GenerateMovementsReportAction extends Action
         $writer->openToFile($path);
 
         $writer->addRow(Row::fromValues(
-            ['Tipo', 'Cuenta(s)', 'Categoría', 'Contexto', 'Monto (COP)', 'Fecha', 'Descripción'],
+            ['Tipo', 'Cuenta(s)', 'Categoría', 'Contexto', 'Monto', 'Moneda', 'Fecha', 'Descripción'],
             (new Style)->setFontBold(),
         ));
 
@@ -104,6 +104,7 @@ class GenerateMovementsReportAction extends Action
                 $movement->category?->name ?? '',
                 $movement->financialContext?->name ?? '',
                 (string) $movement->amount,
+                $movement->currency(),
                 $movement->date->format('d/m/Y'),
                 (string) $movement->description,
             ]));
@@ -146,27 +147,46 @@ class GenerateMovementsReportAction extends Action
     }
 
     /**
+     * Un total por moneda en vez de uno solo (ver docs/finance.md —
+     * Multi-moneda): sin conversión automática, sumar movimientos de
+     * monedas distintas como si fueran una sola sería un número sin
+     * sentido. Con una sola moneda entre los movimientos filtrados (el
+     * caso normal) el informe muestra un solo total, igual que antes.
+     *
      * @param  Collection<int, Movement>  $movements
-     * @return array{income: string, expense: string, net: string}
+     * @return array<int, array{currency: string, income: string, expense: string, net: string}>
      */
     private function totals(Collection $movements): array
     {
-        $income = '0';
-        $expense = '0';
+        $income = [];
+        $expense = [];
 
         foreach ($movements as $movement) {
+            $currency = $movement->currency();
+
             match ($movement->type) {
-                MovementType::Income => $income = bcadd($income, (string) $movement->amount, 2),
-                MovementType::Expense => $expense = bcadd($expense, (string) $movement->amount, 2),
+                MovementType::Income => $income[$currency] = bcadd($income[$currency] ?? '0', (string) $movement->amount, 2),
+                MovementType::Expense => $expense[$currency] = bcadd($expense[$currency] ?? '0', (string) $movement->amount, 2),
                 default => null,
             };
         }
 
-        return [
-            'income' => Money::format($income),
-            'expense' => Money::format($expense),
-            'net' => Money::format(bcsub($income, $expense, 2)),
-        ];
+        $currencies = array_unique([...array_keys($income), ...array_keys($expense)]);
+        sort($currencies);
+
+        return collect($currencies)
+            ->map(function (string $currency) use ($income, $expense): array {
+                $currencyIncome = $income[$currency] ?? '0';
+                $currencyExpense = $expense[$currency] ?? '0';
+
+                return [
+                    'currency' => $currency,
+                    'income' => Money::format($currencyIncome, $currency),
+                    'expense' => Money::format($currencyExpense, $currency),
+                    'net' => Money::format(bcsub($currencyIncome, $currencyExpense, 2), $currency),
+                ];
+            })
+            ->all();
     }
 
     private function filename(string $extension): string

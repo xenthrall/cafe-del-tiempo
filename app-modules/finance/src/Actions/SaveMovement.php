@@ -4,7 +4,9 @@ namespace Tequia\Finance\Actions;
 
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator as ValidatorContract;
 use Tequia\Finance\Enums\MovementType;
+use Tequia\Finance\Models\Account;
 use Tequia\Finance\Models\Movement;
 
 /**
@@ -40,7 +42,13 @@ class SaveMovement
     {
         $type = $input['type'] instanceof MovementType ? $input['type'] : MovementType::from($input['type']);
 
-        $data = Validator::make([...$input, 'type' => $type->value], $this->rules($type))->validate();
+        $validator = Validator::make([...$input, 'type' => $type->value], $this->rules($type));
+
+        if ($type === MovementType::Transfer) {
+            $validator->after(fn (ValidatorContract $validator) => $this->validateSameCurrencyTransfer($validator, $input));
+        }
+
+        $data = $validator->validate();
         $data['type'] = $type;
 
         return match ($type) {
@@ -48,6 +56,26 @@ class SaveMovement
             MovementType::Adjustment => [...$data, 'from_account_id' => null, 'to_account_id' => null, 'category_id' => null],
             MovementType::Income, MovementType::Expense => [...$data, 'from_account_id' => null, 'to_account_id' => null],
         };
+    }
+
+    /**
+     * Una transferencia no convierte moneda (ver docs/finance.md —
+     * Multi-moneda): origen y destino deben coincidir. La UI ya filtra
+     * `to_account_id` a la moneda de `from_account_id` (ver
+     * ManageMovementAction), esto es la última línea de defensa en el
+     * guardado. Si alguno de los dos IDs ya falló `exists` en `rules()`,
+     * `Account::find()` da null y no hay nada que comparar aquí.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private function validateSameCurrencyTransfer(ValidatorContract $validator, array $input): void
+    {
+        $from = Account::find($input['from_account_id'] ?? null);
+        $to = Account::find($input['to_account_id'] ?? null);
+
+        if ($from && $to && $from->currency !== $to->currency) {
+            $validator->errors()->add('to_account_id', 'Solo puedes transferir entre cuentas de la misma moneda.');
+        }
     }
 
     /**

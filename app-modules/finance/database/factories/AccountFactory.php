@@ -24,7 +24,6 @@ class AccountFactory extends Factory
             'name' => fake()->words(2, true),
             'type' => fake()->randomElement(AccountType::cases()),
             'currency' => 'COP',
-            'opening_balance' => 0,
         ];
     }
 }

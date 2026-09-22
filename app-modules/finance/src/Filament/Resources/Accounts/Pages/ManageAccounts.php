@@ -64,7 +64,6 @@ class ManageAccounts extends Page
                 'type' => $account->type->value,
                 'typeLabel' => $account->type->label(),
                 'typeIcon' => $account->type->icon(),
-                'openingBalance' => $account->opening_balance,
                 'balance' => $account->balance(),
                 'formattedBalance' => $account->formattedBalance(),
                 'isActive' => $account->is_active,

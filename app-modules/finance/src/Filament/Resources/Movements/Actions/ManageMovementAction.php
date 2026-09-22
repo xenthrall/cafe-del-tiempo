@@ -97,11 +97,16 @@ class ManageMovementAction extends Action
                     ->visible(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->required(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->different('to_account_id')
+                    ->live()
                     ->native(false),
 
+                // Solo ofrece cuentas de la misma moneda que la de origen —
+                // una transferencia no convierte moneda (ver SaveMovement,
+                // que además la rechaza en el guardado si igual llegara un
+                // par inválido).
                 Select::make('to_account_id')
                     ->label('Cuenta de destino')
-                    ->options(fn (Get $get): Collection => $this->accountOptions($get('to_account_id')))
+                    ->options(fn (Get $get): Collection => $this->accountOptions($get('to_account_id'), $this->accountCurrency($get('from_account_id'))))
                     ->visible(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->required(fn (Get $get): bool => $get('type') === MovementType::Transfer->value)
                     ->native(false),
@@ -136,7 +141,7 @@ class ManageMovementAction extends Action
 
             Grid::make(2)->schema([
                 TextInput::make('amount')
-                    ->label('Monto (COP)')
+                    ->label('Monto')
                     ->numeric()
                     ->step(0.01)
                     ->required()
@@ -144,7 +149,7 @@ class ManageMovementAction extends Action
                     ->helperText(fn (Get $get): ?string => $get('type') === MovementType::Adjustment->value
                         ? 'Usa un valor negativo para reducir el saldo.'
                         : null)
-                    ->belowContent(fn (Get $get): array => $this->amountPreview($get('amount'))),
+                    ->belowContent(fn (Get $get): array => $this->amountPreview($get)),
 
                 DatePicker::make('date')
                     ->label('Fecha')
@@ -158,28 +163,63 @@ class ManageMovementAction extends Action
     }
 
     /**
-     * Previsualización en vivo del monto (formato COP + escrito en palabras),
-     * para que un cero de más al digitar montos grandes ("1.500.000" vs
-     * "15.000.000") se note antes de guardar en vez de después.
+     * Previsualización en vivo del monto (formato en la moneda de la cuenta
+     * elegida + escrito en palabras si es COP), para que un cero de más al
+     * digitar montos grandes ("1.500.000" vs "15.000.000") se note antes de
+     * guardar en vez de después.
      *
      * @return array<int, Text>
      */
-    private function amountPreview(mixed $amount): array
+    private function amountPreview(Get $get): array
     {
+        $amount = $get('amount');
+
         if (! is_numeric($amount)) {
             return [];
         }
 
         $value = (float) $amount;
+        $currency = $this->selectedCurrency($get);
 
-        return [
-            Text::make(Money::format($value))
+        $preview = [
+            Text::make(Money::format($value, $currency))
                 ->weight(FontWeight::SemiBold)
                 ->size(TextSize::Small),
-            Text::make($this->spellOutAmount($value))
-                ->size(TextSize::ExtraSmall)
-                ->color('gray'),
         ];
+
+        // El deletreo es un texto en español pensado para pesos colombianos
+        // ("mil quinientos pesos colombianos"); no tiene sentido traducirlo
+        // por moneda, así que solo se muestra para COP.
+        if ($currency === 'COP') {
+            $preview[] = Text::make($this->spellOutAmount($value))
+                ->size(TextSize::ExtraSmall)
+                ->color('gray');
+        }
+
+        return $preview;
+    }
+
+    /**
+     * Moneda de la cuenta relevante según el tipo de movimiento: `account_id`
+     * para ingreso/gasto/ajuste, `from_account_id` para una transferencia
+     * (origen y destino comparten moneda, ver SaveMovement).
+     */
+    private function selectedCurrency(Get $get): string
+    {
+        $accountId = $get('type') === MovementType::Transfer->value
+            ? $get('from_account_id')
+            : $get('account_id');
+
+        return $this->accountCurrency($accountId) ?? 'COP';
+    }
+
+    private function accountCurrency(mixed $accountId): ?string
+    {
+        if (! $accountId) {
+            return null;
+        }
+
+        return Account::query()->whereKey($accountId)->value('currency');
     }
 
     private function spellOutAmount(float $amount): string
@@ -263,10 +303,14 @@ class ManageMovementAction extends Action
      * Solo cuentas activas — igual que con los contextos (ver
      * `contextOptions()`), salvo la que ya tenga asignada este campo (su
      * valor actual, vía `Get`), para no quitársela en silencio al editar.
+     * `$currency`, si se indica, acota además a cuentas de esa moneda (ver
+     * `to_account_id` en `formSchema()`: no tiene sentido ofrecer una cuenta
+     * de otra moneda como destino de una transferencia).
      */
-    private function accountOptions(mixed $currentAccountId): Collection
+    private function accountOptions(mixed $currentAccountId, ?string $currency = null): Collection
     {
         return Account::query()
+            ->when($currency, fn ($query) => $query->where('currency', $currency))
             ->where(fn ($query) => $query
                 ->where('is_active', true)
                 ->when($currentAccountId, fn ($query) => $query->orWhere('id', $currentAccountId)))

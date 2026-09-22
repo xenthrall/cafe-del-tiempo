@@ -17,7 +17,6 @@ return new class extends Migration
             $table->string('name');
             $table->string('type');
             $table->string('currency', 3)->default('COP');
-            $table->decimal('opening_balance', 14, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

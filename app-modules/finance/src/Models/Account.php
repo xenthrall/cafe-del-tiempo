@@ -28,7 +28,6 @@ class Account extends Model
         'name',
         'type',
         'currency',
-        'opening_balance',
         'is_active',
     ];
 
@@ -39,7 +38,6 @@ class Account extends Model
     {
         return [
             'type' => AccountType::class,
-            'opening_balance' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }
@@ -75,12 +73,15 @@ class Account extends Model
     }
 
     /**
-     * Saldo actual: saldo inicial + ingresos/ajustes positivos - gastos/ajustes negativos
-     * +/- transferencias, calculado a partir del histórico de movimientos (no se persiste).
+     * Saldo actual: ingresos/ajustes positivos - gastos/ajustes negativos +/-
+     * transferencias, calculado a partir del histórico de movimientos (no se
+     * persiste). Los movimientos son la única fuente de verdad — un saldo
+     * inicial se registra como un movimiento de ajuste más (ver
+     * ManageAccountAction), no como un campo aparte que pudiera desincronizarse.
      */
     public function balance(): string
     {
-        $balance = bcadd('0', (string) $this->opening_balance, 2);
+        $balance = '0';
 
         foreach ($this->movements as $movement) {
             $balance = match ($movement->type) {

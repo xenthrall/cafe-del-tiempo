@@ -69,7 +69,16 @@
                     <x-filament::icon icon="heroicon-o-banknotes" class="h-4 w-4" />
                     Saldo total
                 </p>
-                <p class="mt-1 text-2xl font-semibold text-gray-950 dark:text-white">{{ $totalBalance }}</p>
+                <div class="mt-1 flex flex-col">
+                    @foreach ($totalBalances as $balance)
+                        <p class="text-2xl font-semibold text-gray-950 dark:text-white">
+                            {{ $balance['formatted'] }}
+                            @if (count($totalBalances) > 1)
+                                <span class="text-xs font-normal text-gray-400">{{ $balance['currency'] }}</span>
+                            @endif
+                        </p>
+                    @endforeach
+                </div>
                 <p class="mt-1 text-xs text-gray-400">De todas tus cuentas, hoy</p>
             </div>
 
@@ -78,7 +87,16 @@
                     <x-filament::icon icon="heroicon-o-arrow-trending-up" class="h-4 w-4" />
                     Ingresos
                 </p>
-                <p class="mt-1 text-2xl font-semibold text-success-600 dark:text-success-400">{{ $periodIncome }}</p>
+                <div class="mt-1 flex flex-col">
+                    @foreach ($periodIncomes as $income)
+                        <p class="text-2xl font-semibold text-success-600 dark:text-success-400">
+                            {{ $income['formatted'] }}
+                            @if (count($periodIncomes) > 1)
+                                <span class="text-xs font-normal text-gray-400">{{ $income['currency'] }}</span>
+                            @endif
+                        </p>
+                    @endforeach
+                </div>
                 <p class="mt-1 text-xs text-gray-400">
                     {{ match ($periodPreset) {
                         'week' => 'Esta semana',
@@ -95,7 +113,16 @@
                     <x-filament::icon icon="heroicon-o-arrow-trending-down" class="h-4 w-4" />
                     Gastos
                 </p>
-                <p class="mt-1 text-2xl font-semibold text-danger-600 dark:text-danger-400">{{ $periodExpense }}</p>
+                <div class="mt-1 flex flex-col">
+                    @foreach ($periodExpenses as $expense)
+                        <p class="text-2xl font-semibold text-danger-600 dark:text-danger-400">
+                            {{ $expense['formatted'] }}
+                            @if (count($periodExpenses) > 1)
+                                <span class="text-xs font-normal text-gray-400">{{ $expense['currency'] }}</span>
+                            @endif
+                        </p>
+                    @endforeach
+                </div>
                 <p class="mt-1 text-xs text-gray-400">
                     {{ match ($periodPreset) {
                         'week' => 'Esta semana',
@@ -112,53 +139,62 @@
                     <x-filament::icon icon="heroicon-o-scale" class="h-4 w-4" />
                     Neto
                 </p>
-                <p @class([
-                    'mt-1 text-2xl font-semibold',
-                    'text-danger-600 dark:text-danger-400' => $periodNetIsNegative,
-                    'text-gray-950 dark:text-white' => ! $periodNetIsNegative,
-                ])>
-                    {{ $periodNet }}
-                </p>
+                <div class="mt-1 flex flex-col">
+                    @foreach ($periodNets as $net)
+                        <p @class([
+                            'text-2xl font-semibold',
+                            'text-danger-600 dark:text-danger-400' => $net['isNegative'],
+                            'text-gray-950 dark:text-white' => ! $net['isNegative'],
+                        ])>
+                            {{ $net['formatted'] }}
+                            @if (count($periodNets) > 1)
+                                <span class="text-xs font-normal text-gray-400">{{ $net['currency'] }}</span>
+                            @endif
+                        </p>
+                    @endforeach
+                </div>
                 <p class="mt-1 text-xs text-gray-400">Ingresos menos gastos</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            {{-- Cashflow chart --}}
-            <div class="xl:col-span-2">
-                <x-filament::section heading="Ingresos vs. gastos (últimos 6 meses)">
-                    <div class="flex items-end gap-4 overflow-x-auto pb-2">
-                        @foreach ($monthlyCashflow as $month)
-                            <div class="flex min-w-[3.5rem] flex-1 flex-col items-center gap-2">
-                                <div class="flex h-32 w-full items-end justify-center gap-1">
-                                    <div
-                                        class="w-3 rounded-t bg-success-500/80 dark:bg-success-400/80"
-                                        style="height: {{ max($month['incomePercent'], 2) }}%"
-                                        title="Ingresos: {{ $month['formattedIncome'] }}"
-                                    ></div>
-                                    <div
-                                        class="w-3 rounded-t bg-danger-500/80 dark:bg-danger-400/80"
-                                        style="height: {{ max($month['expensePercent'], 2) }}%"
-                                        title="Gastos: {{ $month['formattedExpense'] }}"
-                                    ></div>
+            {{-- Cashflow chart: un bloque por moneda en uso (casi siempre una sola) --}}
+            <div class="xl:col-span-2 flex flex-col gap-6">
+                @foreach ($monthlyCashflow as $currency => $months)
+                    <x-filament::section :heading="count($monthlyCashflow) > 1 ? 'Ingresos vs. gastos (' . $currency . ', últimos 6 meses)' : 'Ingresos vs. gastos (últimos 6 meses)'">
+                        <div class="flex items-end gap-4 overflow-x-auto pb-2">
+                            @foreach ($months as $month)
+                                <div class="flex min-w-[3.5rem] flex-1 flex-col items-center gap-2">
+                                    <div class="flex h-32 w-full items-end justify-center gap-1">
+                                        <div
+                                            class="w-3 rounded-t bg-success-500/80 dark:bg-success-400/80"
+                                            style="height: {{ max($month['incomePercent'], 2) }}%"
+                                            title="Ingresos: {{ $month['formattedIncome'] }}"
+                                        ></div>
+                                        <div
+                                            class="w-3 rounded-t bg-danger-500/80 dark:bg-danger-400/80"
+                                            style="height: {{ max($month['expensePercent'], 2) }}%"
+                                            title="Gastos: {{ $month['formattedExpense'] }}"
+                                        ></div>
+                                    </div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ $month['label'] }}</span>
                                 </div>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $month['label'] }}</span>
-                            </div>
-                        @endforeach
-                    </div>
+                            @endforeach
+                        </div>
 
-                    <div class="mt-4 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                        <span class="flex items-center gap-1.5">
-                            <span class="h-2 w-2 rounded-full bg-success-500"></span> Ingresos
-                        </span>
-                        <span class="flex items-center gap-1.5">
-                            <span class="h-2 w-2 rounded-full bg-danger-500"></span> Gastos
-                        </span>
-                        @if ($contextId)
-                            <span class="text-gray-400">· Solo {{ $this->contextOptions()->get($contextId) }}</span>
-                        @endif
-                    </div>
-                </x-filament::section>
+                        <div class="mt-4 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-success-500"></span> Ingresos
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-danger-500"></span> Gastos
+                            </span>
+                            @if ($contextId)
+                                <span class="text-gray-400">· Solo {{ $this->contextOptions()->get($contextId) }}</span>
+                            @endif
+                        </div>
+                    </x-filament::section>
+                @endforeach
             </div>
 
             {{-- Accounts --}}
@@ -253,42 +289,56 @@
         </x-filament::section>
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {{-- Expense breakdown: by context, or by category when a context is already selected --}}
+            {{-- Expense breakdown: by context, or by category when a context is already selected — un bloque por moneda --}}
             <x-filament::section :heading="$expenseBreakdownLabel">
                 @if (empty($expenseBreakdown))
                     <p class="text-sm text-gray-500 dark:text-gray-400">No hay gastos con los filtros aplicados.</p>
                 @else
-                    <div class="flex flex-col gap-3">
-                        @foreach ($expenseBreakdown as $row)
-                            <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="truncate text-gray-700 dark:text-gray-300">{{ $row['name'] }}</span>
-                                    <span class="shrink-0 font-medium text-gray-950 dark:text-white">{{ $row['formattedTotal'] }}</span>
-                                </div>
-                                <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
-                                    <div class="h-full rounded-full bg-danger-500/80" style="width: {{ max($row['percent'], 4) }}%"></div>
-                                </div>
+                    <div class="flex flex-col gap-5">
+                        @foreach ($expenseBreakdown as $currency => $rows)
+                            <div class="flex flex-col gap-3">
+                                @if (count($expenseBreakdown) > 1)
+                                    <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ $currency }}</span>
+                                @endif
+                                @foreach ($rows as $row)
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="truncate text-gray-700 dark:text-gray-300">{{ $row['name'] }}</span>
+                                            <span class="shrink-0 font-medium text-gray-950 dark:text-white">{{ $row['formattedTotal'] }}</span>
+                                        </div>
+                                        <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+                                            <div class="h-full rounded-full bg-danger-500/80" style="width: {{ max($row['percent'], 4) }}%"></div>
+                                        </div>
+                                    </div>
+                                @endforeach
                             </div>
                         @endforeach
                     </div>
                 @endif
             </x-filament::section>
 
-            {{-- Income breakdown: by context, or by category when a context is already selected --}}
+            {{-- Income breakdown: by context, or by category when a context is already selected — un bloque por moneda --}}
             <x-filament::section :heading="$incomeBreakdownLabel">
                 @if (empty($incomeBreakdown))
                     <p class="text-sm text-gray-500 dark:text-gray-400">No hay ingresos con los filtros aplicados.</p>
                 @else
-                    <div class="flex flex-col gap-3">
-                        @foreach ($incomeBreakdown as $row)
-                            <div class="flex flex-col gap-1">
-                                <div class="flex items-center justify-between text-sm">
-                                    <span class="truncate text-gray-700 dark:text-gray-300">{{ $row['name'] }}</span>
-                                    <span class="shrink-0 font-medium text-gray-950 dark:text-white">{{ $row['formattedTotal'] }}</span>
-                                </div>
-                                <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
-                                    <div class="h-full rounded-full bg-success-500/80" style="width: {{ max($row['percent'], 4) }}%"></div>
-                                </div>
+                    <div class="flex flex-col gap-5">
+                        @foreach ($incomeBreakdown as $currency => $rows)
+                            <div class="flex flex-col gap-3">
+                                @if (count($incomeBreakdown) > 1)
+                                    <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">{{ $currency }}</span>
+                                @endif
+                                @foreach ($rows as $row)
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="truncate text-gray-700 dark:text-gray-300">{{ $row['name'] }}</span>
+                                            <span class="shrink-0 font-medium text-gray-950 dark:text-white">{{ $row['formattedTotal'] }}</span>
+                                        </div>
+                                        <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/10">
+                                            <div class="h-full rounded-full bg-success-500/80" style="width: {{ max($row['percent'], 4) }}%"></div>
+                                        </div>
+                                    </div>
+                                @endforeach
                             </div>
                         @endforeach
                     </div>

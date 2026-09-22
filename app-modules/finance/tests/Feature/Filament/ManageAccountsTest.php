@@ -51,6 +51,39 @@ it('creates an account with an opening balance', function () {
         ->and($account->currency)->toBe('COP');
 });
 
+it('creates an account with a chosen currency', function () {
+    $test = Livewire::test(ManageAccounts::class)->mountAction('manageAccount');
+
+    setAccountFormData($test, [
+        'name' => 'Cuenta USD',
+        'type' => 'bank',
+        'currency' => 'USD',
+        'opening_balance' => '0',
+    ])
+        ->callMountedAction()
+        ->assertHasNoFormErrors();
+
+    $account = Account::query()->where('name', 'Cuenta USD')->sole();
+
+    expect($account->currency)->toBe('USD');
+});
+
+it('locks the currency field once an account has movements', function () {
+    $account = Account::factory()->create(['currency' => 'COP']);
+    Movement::factory()->expense()->create(['account_id' => $account->id]);
+
+    $test = Livewire::test(ManageAccounts::class)
+        ->mountAction(TestAction::make('manageAccount')->arguments(['account' => $account->id]));
+
+    setAccountFormData($test, ['currency' => 'USD'])
+        ->callMountedAction()
+        ->assertHasNoFormErrors();
+
+    // El campo estaba deshabilitado (no oculto): Filament no lo incluye en
+    // los datos guardados, así que la moneda original se conserva.
+    expect($account->fresh()->currency)->toBe('COP');
+});
+
 it('updates an existing account', function () {
     $account = Account::factory()->create(['name' => 'Efectivo']);
 

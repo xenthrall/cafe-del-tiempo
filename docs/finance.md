@@ -11,7 +11,7 @@ Namespace `Tequia\Finance`, migraciones en `app-modules/finance/database/migrati
 | Tabla | Columnas propias | Relaciones |
 | --- | --- | --- |
 | `finance_financial_contexts` | `user_id`, `name`, `is_active` | tiene muchas `finance_categories`, `finance_movements` |
-| `finance_accounts` | `user_id`, `name`, `type` (enum `AccountType`: `cash`, `bank`, `digital_wallet`, `credit_card`), `currency` (siempre `COP` por ahora), `opening_balance`, `is_active` | tiene muchos `finance_movements` (como `account_id`, `from_account_id`, `to_account_id`) |
+| `finance_accounts` | `user_id`, `name`, `type` (enum `AccountType`: `cash`, `bank`, `digital_wallet`, `credit_card`), `currency` (enum `Currency`: `COP`, `USD`, `EUR`, `MXN`, `ARS`, `BRL`), `is_active` | tiene muchos `finance_movements` (como `account_id`, `from_account_id`, `to_account_id`) |
 | `finance_categories` | `user_id`, `name`, `type` (enum `CategoryType`: `income`, `expense`), `parent_id` (auto-referencia, para jerarquía tipo `Transporte > Combustible`), `financial_context_id` (nullable), `is_active` | pertenece a un `parent`, a un `financialContext` |
 | `finance_movements` | `user_id`, `type` (enum `MovementType`: `income`, `expense`, `transfer`, `adjustment`), `account_id`, `from_account_id`/`to_account_id` (solo `transfer`), `category_id` (solo `income`/`expense`), `financial_context_id`, `amount`, `date`, `description` | pertenece a `account`/`fromAccount`/`toAccount`, `category`, `financialContext` |
 
@@ -24,7 +24,7 @@ Otras reglas de borrado (`restrictOnDelete` salvo que se indique lo contrario):
 - `finance_movements.category_id`, `finance_movements.financial_context_id` → no se puede borrar una categoría/contexto con movimientos.
 - `finance_categories.parent_id`, `finance_categories.financial_context_id` → `nullOnDelete`: borrar el padre/contexto solo desvincula, no borra la categoría.
 
-El saldo de una cuenta **no se persiste**: `Account::balance()` lo calcula sumando `opening_balance` + movimientos (con `bcmath`, sin errores de punto flotante).
+El saldo de una cuenta **no se persiste**: `Account::balance()` lo calcula sumando sus movimientos (con `bcmath`, sin errores de punto flotante). No existe una columna de saldo inicial — al crear una cuenta, lo que el usuario indique como saldo inicial se registra como un movimiento de tipo `adjustment` más (ver `ManageAccountAction::save()`), para que los movimientos sean la única fuente de verdad y nunca puedan desincronizarse de un campo aparte.
 
 ## Aislamiento por usuario
 
@@ -53,5 +53,5 @@ Páginas custom (no CRUD genérico de Filament):
 ## Cosas a tener en cuenta
 
 - Las migraciones se editan **directamente** cuando cambia el esquema (no se van acumulando migraciones nuevas por cada ajuste) — si tu base de datos ya estaba migrada con una versión anterior del esquema, necesitas `migrate:fresh` (o equivalente) para que quede al día. Tú te encargas de correrlo.
-- Solo moneda `COP` por ahora; el modelo no bloquea otras monedas pero no hay UI para eso todavía.
+- No hay conversión automática entre monedas: cada cuenta tiene la suya, y una transferencia solo se permite entre cuentas de la misma moneda.
 - No hay soporte para préstamos/deudas con terceros, ni recurrencia programada, ni informes tributarios — quedan fuera del alcance actual.
