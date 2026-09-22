@@ -51,6 +51,12 @@ class ManageMovementAction extends Action
             ->label(fn (array $arguments, ?Movement $record): string => $this->isEditing($arguments, $record) ? 'Editar movimiento' : 'Nuevo movimiento')
             ->modalHeading(fn (array $arguments, ?Movement $record): string => $this->isEditing($arguments, $record) ? 'Editar movimiento' : 'Nuevo movimiento')
             ->modalWidth(Width::Large)
+            // Panel deslizable en vez de modal centrado: en móvil, un modal
+            // centrado queda apretado contra el teclado (solo le queda la
+            // mitad de la pantalla). El slide-over ocupa el alto real del
+            // dispositivo (h-dvh) y ancla el header/footer, así los botones
+            // de guardar quedan siempre alcanzables sin scrollear.
+            ->slideOver()
             ->icon(fn (array $arguments, ?Movement $record) => $this->isEditing($arguments, $record) ? 'heroicon-o-pencil-square' : 'heroicon-o-plus')
             ->schema($this->formSchema())
             ->fillForm(fn (array $arguments, ?Movement $record): array => $this->fillFormData($arguments, $record))

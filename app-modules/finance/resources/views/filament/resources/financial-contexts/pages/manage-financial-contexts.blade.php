@@ -57,7 +57,7 @@
                                 </span>
                             </button>
 
-                            <div class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                            <div class="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                                 <x-filament::icon-button
                                     :icon="$context['isActive'] ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark'"
                                     :label="$context['isActive'] ? 'Archivar' : 'Reactivar'"

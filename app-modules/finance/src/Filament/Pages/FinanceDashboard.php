@@ -211,6 +211,18 @@ class FinanceDashboard extends Page
         return FinancialContext::query()->orderBy('name')->pluck('name', 'id');
     }
 
+    /**
+     * Cuántos filtros del panel colapsable (periodo, contexto) están activos
+     * — para el badge del botón "Filtros" en móvil (ver finance-dashboard.blade.php).
+     * 'month' es el default de $periodPreset, no cuenta como filtro activo.
+     */
+    public function activeFilterCount(): int
+    {
+        return collect([$this->periodPreset !== 'month', filled($this->contextId)])
+            ->filter()
+            ->count();
+    }
+
     public function manageMovementAction(): ManageMovementAction
     {
         return ManageMovementAction::make()->after(fn () => $this->refreshDashboard());
