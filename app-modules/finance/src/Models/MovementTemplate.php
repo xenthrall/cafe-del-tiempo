@@ -80,7 +80,7 @@ class MovementTemplate extends Model
 
     public function formattedAmount(): string
     {
-        return Money::format($this->amount, $this->account?->currency ?? 'COP');
+        return Money::format($this->amount, $this->account?->currency?->value ?? 'COP');
     }
 
     /**

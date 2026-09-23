@@ -232,7 +232,10 @@ class ManageMovementAction extends Action
             return null;
         }
 
-        return Account::query()->whereKey($accountId)->value('currency');
+        // ->value() hidrata un modelo parcial para leer la columna, así que
+        // sí aplica el cast de Account::currency (a diferencia de una
+        // consulta sin Eloquent) — hay que desenvolver el enum.
+        return Account::query()->whereKey($accountId)->value('currency')?->value;
     }
 
     private function spellOutAmount(float $amount): string

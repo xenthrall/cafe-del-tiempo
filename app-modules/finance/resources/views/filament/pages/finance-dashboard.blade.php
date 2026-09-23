@@ -55,14 +55,12 @@
                 @endif
 
                 <div class="w-full sm:w-48">
-                    <x-filament::input.wrapper>
-                        <x-filament::input.select wire:model.live="contextId">
-                            <option value="">Todos los contextos</option>
-                            @foreach ($this->contextOptions() as $id => $name)
-                                <option value="{{ $id }}">{{ $name }}</option>
-                            @endforeach
-                        </x-filament::input.select>
-                    </x-filament::input.wrapper>
+                    @include('finance::filament.components.searchable-filter', [
+                        'wireModel' => 'contextId',
+                        'options' => $this->contextOptions(),
+                        'current' => $contextId,
+                        'placeholder' => 'Todos los contextos',
+                    ])
                 </div>
             </div>
 

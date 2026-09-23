@@ -8,6 +8,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
+use Tequia\Finance\Enums\Currency;
 use Tequia\Finance\Enums\MovementType;
 use Tequia\Finance\Filament\Resources\Movements\Actions\DeleteMovementAction;
 use Tequia\Finance\Filament\Resources\Movements\Actions\ManageMovementAction;
@@ -409,7 +410,12 @@ class FinanceDashboard extends Page
      */
     private function activeCurrencies(): Collection
     {
-        $currencies = Account::query()->distinct()->pluck('currency');
+        // pluck() hidrata un modelo parcial por fila para leer la columna, así
+        // que sí aplica el cast de Account::currency — hay que desenvolver el
+        // enum aquí, la única vez, para que el resto del dashboard siga
+        // trabajando con strings planas como antes.
+        $currencies = Account::query()->distinct()->pluck('currency')
+            ->map(fn (Currency $currency): string => $currency->value);
 
         return $currencies->isEmpty() ? collect(['COP']) : $currencies->values();
     }

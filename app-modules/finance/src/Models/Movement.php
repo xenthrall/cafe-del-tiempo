@@ -107,7 +107,7 @@ class Movement extends Model
      */
     public function currency(): string
     {
-        return $this->account?->currency ?? $this->fromAccount?->currency ?? 'COP';
+        return $this->account?->currency?->value ?? $this->fromAccount?->currency?->value ?? 'COP';
     }
 
     /**

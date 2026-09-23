@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Tequia\Finance\Database\Factories\AccountFactory;
 use Tequia\Finance\Enums\AccountType;
+use Tequia\Finance\Enums\Currency;
 use Tequia\Finance\Enums\MovementType;
 use Tequia\Finance\Models\Concerns\BelongsToUser;
 use Tequia\Finance\Support\Money;
@@ -38,6 +39,7 @@ class Account extends Model
     {
         return [
             'type' => AccountType::class,
+            'currency' => Currency::class,
             'is_active' => 'boolean',
         ];
     }
@@ -130,7 +132,7 @@ class Account extends Model
 
     public function formattedBalance(): string
     {
-        return Money::format($this->balance(), $this->currency);
+        return Money::format($this->balance(), $this->currency->value);
     }
 
     /**
