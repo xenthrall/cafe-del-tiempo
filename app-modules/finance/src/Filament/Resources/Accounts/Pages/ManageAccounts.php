@@ -2,6 +2,7 @@
 
 namespace Tequia\Finance\Filament\Resources\Accounts\Pages;
 
+use Filament\Actions\Action;
 use Filament\Resources\Pages\Page;
 use Tequia\Finance\Filament\Resources\Accounts\AccountResource;
 use Tequia\Finance\Filament\Resources\Accounts\Actions\DeleteAccountAction;
@@ -49,6 +50,21 @@ class ManageAccounts extends Page
         $account->update(['is_active' => ! $account->is_active]);
 
         $this->refreshAccounts();
+    }
+
+    /**
+     * Envuelve `toggleAccountActive()` como una `Action` para poder agruparla
+     * con `deleteAccountAction` en un menú `<x-filament-actions::group>` (ver
+     * la vista) — en móvil, tres iconButton sueltos y pegados son difíciles
+     * de tocar sin errar, así que solo "editar" queda como botón grande y
+     * suelto; archivar/eliminar van al menú "más acciones".
+     */
+    public function toggleAccountActiveAction(): Action
+    {
+        return Action::make('toggleAccountActive')
+            ->label(fn (array $arguments): string => ($arguments['active'] ?? true) ? 'Archivar' : 'Reactivar')
+            ->icon(fn (array $arguments): string => ($arguments['active'] ?? true) ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark')
+            ->action(fn (array $arguments) => $this->toggleAccountActive($arguments['account']));
     }
 
     private function refreshAccounts(): void

@@ -102,6 +102,11 @@ class ManageCategoryAction extends Action
                     $get('editing_category_id'),
                     $get('parent_id'),
                 ))
+                ->disabled(fn (Get $get): bool => $this->hasChildren($get('editing_category_id')))
+                ->dehydrated(fn (Get $get): bool => ! $this->hasChildren($get('editing_category_id')))
+                ->helperText(fn (Get $get): ?string => $this->hasChildren($get('editing_category_id'))
+                    ? 'Ya tiene categorías hijas, así que no puede convertirse en hija de otra (máximo 2 niveles).'
+                    : null)
                 ->native(false),
 
             Checkbox::make('is_active')
@@ -110,6 +115,11 @@ class ManageCategoryAction extends Action
         ];
     }
 
+    /**
+     * Solo categorías raíz (sin `parent_id`) pueden ofrecerse como padre: una
+     * jerarquía de más de 2 niveles no está permitida (ver también
+     * `hasChildren()`, que bloquea la dirección contraria).
+     */
     private function parentOptions(?string $type, mixed $contextId, mixed $excludeId, mixed $currentParentId): Collection
     {
         if (! in_array($type, [CategoryType::Income->value, CategoryType::Expense->value], true)) {
@@ -119,12 +129,24 @@ class ManageCategoryAction extends Action
         return Category::query()
             ->where('type', $type)
             ->where('financial_context_id', $contextId ?: null)
+            ->whereNull('parent_id')
             ->where(fn ($query) => $query
                 ->where('is_active', true)
                 ->when($currentParentId, fn ($query) => $query->orWhere('id', $currentParentId)))
             ->when($excludeId, fn ($query) => $query->whereKeyNot($excludeId))
             ->orderBy('name')
             ->pluck('name', 'id');
+    }
+
+    /**
+     * Si la categoría que se edita ya tiene hijas, no puede a su vez
+     * convertirse en hija de otra (dejaría a sus hijas como "nietas" de la
+     * categoría padre, un tercer nivel). Ver `parentOptions()` para la
+     * dirección contraria: una hija nunca aparece como opción de padre.
+     */
+    private function hasChildren(mixed $categoryId): bool
+    {
+        return $categoryId && Category::query()->where('parent_id', $categoryId)->exists();
     }
 
     /**
@@ -161,7 +183,13 @@ class ManageCategoryAction extends Action
      */
     private function save(array $data, array $arguments, ?Category $record): void
     {
-        $data['parent_id'] = $data['parent_id'] ?: null;
+        // `parent_id` no llega en $data cuando el campo está deshabilitado
+        // (categoría con hijas, ver `hasChildren()`) — no dehydrated, así que
+        // no se toca al guardar en vez de sobrescribirlo con null.
+        if (array_key_exists('parent_id', $data)) {
+            $data['parent_id'] = $data['parent_id'] ?: null;
+        }
+
         unset($data['editing_category_id']);
 
         $categoryId = $this->resolveCategoryId($arguments, $record);

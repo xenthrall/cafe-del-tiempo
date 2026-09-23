@@ -2,7 +2,9 @@
 
 namespace Tequia\Finance\Filament\Resources\FinancialContexts\Pages;
 
+use Filament\Actions\Action;
 use Filament\Resources\Pages\Page;
+use Tequia\Finance\Filament\Resources\FinancialContexts\Actions\CreateSampleContextAction;
 use Tequia\Finance\Filament\Resources\FinancialContexts\Actions\DeleteCategoryAction;
 use Tequia\Finance\Filament\Resources\FinancialContexts\Actions\DeleteContextAction;
 use Tequia\Finance\Filament\Resources\FinancialContexts\Actions\ManageCategoryAction;
@@ -93,6 +95,17 @@ class ManageFinancialContexts extends Page
         return ManageContextAction::make()->after(fn () => $this->refreshContexts());
     }
 
+    public function createSampleContextAction(): CreateSampleContextAction
+    {
+        return CreateSampleContextAction::make()->after(function (): void {
+            $this->refreshContexts();
+
+            $this->selectedContextId = collect($this->contexts)->firstWhere('name', 'Personal')['id'] ?? null;
+
+            $this->refreshCategories();
+        });
+    }
+
     public function deleteContextAction(): DeleteContextAction
     {
         return DeleteContextAction::make()->after(function (): void {
@@ -114,6 +127,49 @@ class ManageFinancialContexts extends Page
     public function deleteCategoryAction(): DeleteCategoryAction
     {
         return DeleteCategoryAction::make()->after(fn () => $this->refreshCategories());
+    }
+
+    /**
+     * Envuelve `toggleContextActive()` como una `Action` para poder agruparla
+     * con `deleteContextAction` en un menú `<x-filament-actions::group>` (ver
+     * la vista) — en móvil, tres iconButton sueltos y pegados son difíciles
+     * de tocar sin errar, así que solo "editar" queda como botón grande y
+     * suelto; archivar/eliminar van al menú "más acciones".
+     */
+    public function toggleContextActiveAction(): Action
+    {
+        return Action::make('toggleContextActive')
+            ->label(fn (array $arguments): string => $this->toggleActiveLabel($arguments))
+            ->icon(fn (array $arguments): string => $this->toggleActiveIcon($arguments))
+            ->action(fn (array $arguments) => $this->toggleContextActive($arguments['context']));
+    }
+
+    /**
+     * Mismo envoltorio que `toggleContextActiveAction()` mas para
+     * `toggleCategoryActive()` (categorías padre e hijas).
+     */
+    public function toggleCategoryActiveAction(): Action
+    {
+        return Action::make('toggleCategoryActive')
+            ->label(fn (array $arguments): string => $this->toggleActiveLabel($arguments))
+            ->icon(fn (array $arguments): string => $this->toggleActiveIcon($arguments))
+            ->action(fn (array $arguments) => $this->toggleCategoryActive($arguments['category']));
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function toggleActiveLabel(array $arguments): string
+    {
+        return ($arguments['active'] ?? true) ? 'Archivar' : 'Reactivar';
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function toggleActiveIcon(array $arguments): string
+    {
+        return ($arguments['active'] ?? true) ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark';
     }
 
     private function refreshContexts(): void

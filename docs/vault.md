@@ -39,7 +39,7 @@ Una sola página, **`/app/vault-dashboard`** (`VaultDashboard`): crear/renombrar
 
 ## Cosas a tener en cuenta
 
-- Las migraciones se editan **directamente** cuando cambia el esquema (no se acumulan migraciones nuevas por cada ajuste) — si tu base de datos ya estaba migrada con una versión anterior, necesitas `migrate:fresh` (o equivalente). Tú te encargas de correrlo.
+- Las migraciones existentes **ya están en producción** — no se editan directamente. Todo cambio de esquema va en una migración nueva (`php artisan make:migration`), aunque sea para ajustar una tabla creada hace poco.
 - **No hay protocolo de recuperación**: si un usuario pierde su contraseña maestra sin haber guardado una clave de recuperación aparte, sus datos son irrecuperables por diseño (es el costo esperado de zero-knowledge real). Todavía no existe ningún mecanismo de rescate.
 - **No hay estrategia de backup definida** todavía (exportación cifrada, snapshots, etc.) — pendiente.
 - Adjuntos, etiquetas con tabla propia, e ícono personalizado de carpeta quedan fuera del alcance actual.

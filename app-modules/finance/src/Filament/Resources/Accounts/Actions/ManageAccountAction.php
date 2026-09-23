@@ -147,7 +147,7 @@ class ManageAccountAction extends Action
         return [
             'name' => $account->name,
             'type' => $account->type->value,
-            'currency' => $account->currency,
+            'currency' => $account->currency->value,
             'currency_locked' => $account->hasMovements(),
             'is_editing' => true,
             'is_active' => $account->is_active,

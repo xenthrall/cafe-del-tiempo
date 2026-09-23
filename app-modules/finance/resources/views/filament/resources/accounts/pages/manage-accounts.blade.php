@@ -43,13 +43,17 @@
                             </div>
 
                             <div class="flex shrink-0 items-center gap-1">
-                                <x-filament::icon-button
-                                    :icon="$account['isActive'] ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark'"
-                                    :label="$account['isActive'] ? 'Archivar' : 'Reactivar'"
-                                    wire:click="toggleAccountActive({{ $account['id'] }})"
+                                {{ ($this->manageAccountAction)(['account' => $account['id']])->iconButton()->size(\Filament\Support\Enums\Size::Large) }}
+
+                                <x-filament-actions::group
+                                    :actions="[
+                                        ($this->toggleAccountActiveAction)(['account' => $account['id'], 'active' => $account['isActive']]),
+                                        ($this->deleteAccountAction)(['account' => $account['id']]),
+                                    ]"
+                                    icon="heroicon-m-ellipsis-vertical"
+                                    color="gray"
+                                    label="Más acciones"
                                 />
-                                {{ ($this->manageAccountAction)(['account' => $account['id']])->iconButton() }}
-                                {{ ($this->deleteAccountAction)(['account' => $account['id']]) }}
                             </div>
                         </div>
 

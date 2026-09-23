@@ -10,9 +10,14 @@ use Tequia\Finance\Models\Account;
  * Acción reutilizable para eliminar una cuenta. Antes de borrar comprueba
  * `Account::hasMovements()` — una cuenta con movimientos (propios o de
  * transferencias) no se puede perder sin perder histórico real (ver
- * docs/finance.md — Borrado protegido de cuentas y contextos). El
- * `restrictOnDelete()` a nivel de base de datos es el respaldo real; esto
- * solo evita que el usuario llegue a ese error sin avisarle antes.
+ * docs/finance.md — Borrado protegido de cuentas y contextos) — y
+ * `Account::hasMovementTemplates()`, porque una plantilla de movimiento
+ * frecuente sin cuenta queda inutilizable. El `restrictOnDelete()` a nivel de
+ * base de datos es el respaldo real en ambos casos; esto solo evita que el
+ * usuario llegue a ese error sin avisarle antes. Sin `iconButton()` a
+ * propósito: solo se usa agrupada en `<x-filament-actions::group>` (ver
+ * manage-accounts.blade.php), donde necesita mostrar su label para no verse
+ * como un ícono suelto sin explicación.
  */
 class DeleteAccountAction extends Action
 {
@@ -28,7 +33,6 @@ class DeleteAccountAction extends Action
         $this
             ->label('Eliminar')
             ->icon('heroicon-o-trash')
-            ->iconButton()
             ->color('danger')
             ->requiresConfirmation()
             ->modalHeading('Eliminar cuenta')
@@ -41,6 +45,18 @@ class DeleteAccountAction extends Action
                     Notification::make()
                         ->title('No se pudo eliminar la cuenta')
                         ->body('Tiene movimientos registrados. Archívala si ya no la usas, para conservar el histórico.')
+                        ->danger()
+                        ->send();
+
+                    $action->halt();
+
+                    return;
+                }
+
+                if ($account->hasMovementTemplates()) {
+                    Notification::make()
+                        ->title('No se pudo eliminar la cuenta')
+                        ->body('Tiene plantillas de movimientos frecuentes que la usan. Edítalas o elimínalas primero, o archiva la cuenta en su lugar.')
                         ->danger()
                         ->send();
 
