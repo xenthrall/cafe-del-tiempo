@@ -57,20 +57,27 @@
                                 </span>
                             </button>
 
-                            <div class="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-                                <x-filament::icon-button
-                                    :icon="$context['isActive'] ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark'"
-                                    :label="$context['isActive'] ? 'Archivar' : 'Reactivar'"
-                                    wire:click="toggleContextActive({{ $context['id'] }})"
+                            <div class="flex shrink-0 items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                                {{ ($this->manageContextAction)(['context' => $context['id']])->iconButton()->size(\Filament\Support\Enums\Size::Large) }}
+
+                                <x-filament-actions::group
+                                    :actions="[
+                                        ($this->toggleContextActiveAction)(['context' => $context['id'], 'active' => $context['isActive']]),
+                                        ($this->deleteContextAction)(['context' => $context['id']]),
+                                    ]"
+                                    icon="heroicon-m-ellipsis-vertical"
+                                    color="gray"
+                                    label="Más acciones"
                                 />
-                                {{ ($this->manageContextAction)(['context' => $context['id']])->iconButton() }}
-                                {{ ($this->deleteContextAction)(['context' => $context['id']]) }}
                             </div>
                         </div>
                     @empty
-                        <p class="rounded-lg border border-dashed border-gray-300 px-3 py-4 text-center text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">
-                            Todavía no tienes contextos financieros.
-                        </p>
+                        <div class="flex flex-col items-center gap-3 rounded-lg border border-dashed border-gray-300 px-3 py-4 text-center dark:border-white/10">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                Todavía no tienes contextos financieros.
+                            </p>
+                            {{ ($this->createSampleContextAction)([]) }}
+                        </div>
                     @endforelse
                 </div>
             </div>
@@ -135,16 +142,20 @@
                                 </div>
 
                                 <div class="flex shrink-0 items-center gap-1">
-                                    <x-filament::icon-button
-                                        :icon="$category['isActive'] ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark'"
-                                        :label="$category['isActive'] ? 'Archivar' : 'Reactivar'"
-                                        wire:click="toggleCategoryActive({{ $category['id'] }})"
-                                    />
                                     {{ ($this->manageCategoryAction)([
                                         'category' => $category['id'],
                                         'financial_context_id' => $selectedContextId,
-                                    ])->iconButton() }}
-                                    {{ ($this->deleteCategoryAction)(['category' => $category['id']]) }}
+                                    ])->iconButton()->size(\Filament\Support\Enums\Size::Large) }}
+
+                                    <x-filament-actions::group
+                                        :actions="[
+                                            ($this->toggleCategoryActiveAction)(['category' => $category['id'], 'active' => $category['isActive']]),
+                                            ($this->deleteCategoryAction)(['category' => $category['id']]),
+                                        ]"
+                                        icon="heroicon-m-ellipsis-vertical"
+                                        color="gray"
+                                        label="Más acciones"
+                                    />
                                 </div>
                             </div>
 
@@ -168,16 +179,20 @@
                                     </div>
 
                                     <div class="flex shrink-0 items-center gap-1">
-                                        <x-filament::icon-button
-                                            :icon="$child['isActive'] ? 'heroicon-o-archive-box' : 'heroicon-o-archive-box-x-mark'"
-                                            :label="$child['isActive'] ? 'Archivar' : 'Reactivar'"
-                                            wire:click="toggleCategoryActive({{ $child['id'] }})"
-                                        />
                                         {{ ($this->manageCategoryAction)([
                                             'category' => $child['id'],
                                             'financial_context_id' => $selectedContextId,
-                                        ])->iconButton() }}
-                                        {{ ($this->deleteCategoryAction)(['category' => $child['id']]) }}
+                                        ])->iconButton()->size(\Filament\Support\Enums\Size::Large) }}
+
+                                        <x-filament-actions::group
+                                            :actions="[
+                                                ($this->toggleCategoryActiveAction)(['category' => $child['id'], 'active' => $child['isActive']]),
+                                                ($this->deleteCategoryAction)(['category' => $child['id']]),
+                                            ]"
+                                            icon="heroicon-m-ellipsis-vertical"
+                                            color="gray"
+                                            label="Más acciones"
+                                        />
                                     </div>
                                 </div>
                             @endforeach

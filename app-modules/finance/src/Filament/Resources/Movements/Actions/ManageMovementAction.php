@@ -142,6 +142,10 @@ class ManageMovementAction extends Action
                         MovementType::Income->value,
                         MovementType::Expense->value,
                     ], true))
+                    // Buscable: un usuario con muchas categorías/subcategorías
+                    // por contexto no debería tener que scrollear la lista
+                    // para encontrar la suya.
+                    ->searchable()
                     ->native(false),
             ]),
 
