@@ -11,7 +11,10 @@ use Tequia\Finance\Models\FinancialContext;
  * comprueba `FinancialContext::hasMovements()` — un contexto con movimientos
  * no se puede perder sin perder histórico real (ver docs/finance.md —
  * Borrado protegido de cuentas y contextos). Sus categorías, si tiene,
- * quedan sin contexto (`nullOnDelete`) en vez de perderse.
+ * quedan sin contexto (`nullOnDelete`) en vez de perderse. Sin `iconButton()`
+ * a propósito: solo se usa agrupada en `<x-filament-actions::group>` (ver
+ * manage-financial-contexts.blade.php), donde necesita mostrar su label para
+ * no verse como un ícono suelto sin explicación.
  */
 class DeleteContextAction extends Action
 {
@@ -27,7 +30,6 @@ class DeleteContextAction extends Action
         $this
             ->label('Eliminar')
             ->icon('heroicon-o-trash')
-            ->iconButton()
             ->color('danger')
             ->requiresConfirmation()
             ->modalHeading('Eliminar contexto')

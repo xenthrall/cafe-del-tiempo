@@ -73,6 +73,17 @@ class Account extends Model
     }
 
     /**
+     * Plantillas de movimientos frecuentes que usan esta cuenta (ver
+     * `MovementTemplate`).
+     *
+     * @return HasMany<MovementTemplate, $this>
+     */
+    public function movementTemplates(): HasMany
+    {
+        return $this->hasMany(MovementTemplate::class);
+    }
+
+    /**
      * Saldo actual: ingresos/ajustes positivos - gastos/ajustes negativos +/-
      * transferencias, calculado a partir del histórico de movimientos (no se
      * persiste). Los movimientos son la única fuente de verdad — un saldo
@@ -116,6 +127,17 @@ class Account extends Model
         return $this->movements()->exists()
             || $this->outgoingTransfers()->exists()
             || $this->incomingTransfers()->exists();
+    }
+
+    /**
+     * Una cuenta usada por una plantilla de movimiento frecuente tampoco se
+     * puede eliminar (`movement_templates.account_id` usa
+     * `restrictOnDelete()`) — se archiva en su lugar, mismo patrón que
+     * `hasMovements()`.
+     */
+    public function hasMovementTemplates(): bool
+    {
+        return $this->movementTemplates()->exists();
     }
 
     protected static function newFactory(): AccountFactory

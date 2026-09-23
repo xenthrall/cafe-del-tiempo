@@ -25,6 +25,7 @@ use Tequia\Finance\Models\Account;
 use Tequia\Finance\Models\Category;
 use Tequia\Finance\Models\FinancialContext;
 use Tequia\Finance\Models\Movement;
+use Tequia\Finance\Models\MovementTemplate;
 use Tequia\Finance\Support\Money;
 
 /**
@@ -32,9 +33,11 @@ use Tequia\Finance\Support\Money;
  * Interfaz Filament). Dos formas de indicar qué movimiento editar, para poder
  * usarse tanto suelta (blade, con `->arguments(['movement' => $id])`) como
  * `recordAction` de una Table de Filament (que enlaza el registro directo):
- * sin ninguna de las dos, crea un movimiento nuevo. Delega el guardado a
- * `SaveMovement`, única puerta de entrada de la lógica de negocio, para que
- * ningún formulario pueda dejar datos inconsistentes.
+ * sin ninguna de las dos, crea un movimiento nuevo — a menos que llegue
+ * `arguments(['template' => $id])` (ver `ManageMovementTemplates`), en cuyo
+ * caso el formulario se precarga desde esa `MovementTemplate`. Delega el
+ * guardado a `SaveMovement`, única puerta de entrada de la lógica de negocio,
+ * para que ningún formulario pueda dejar datos inconsistentes.
  */
 class ManageMovementAction extends Action
 {
@@ -263,6 +266,16 @@ class ManageMovementAction extends Action
         $movementId = $this->resolveMovementId($arguments, $record);
 
         if ($movementId === null) {
+            // Viene de "Registrar" en Frecuentes (ver ManageMovementTemplates):
+            // precarga todo el formulario desde la plantilla, el usuario solo
+            // confirma (o ajusta) la fecha y guarda.
+            if ($templateId = $arguments['template'] ?? null) {
+                return [
+                    ...MovementTemplate::findOrFail($templateId)->toMovementFormData(),
+                    'date' => now()->toDateString(),
+                ];
+            }
+
             return [
                 'type' => $arguments['type'] ?? MovementType::Expense->value,
                 'date' => now()->toDateString(),
