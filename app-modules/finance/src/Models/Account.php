@@ -84,6 +84,16 @@ class Account extends Model
     }
 
     /**
+     * Memoizado en la instancia (ver `balance()`) — nada en esta app muta las
+     * relaciones de movimientos de una `Account` ya cargada dentro de un
+     * mismo request (siempre se vuelve a consultar `Account::query()` tras
+     * guardar un movimiento), así que cachear por instancia es seguro y evita
+     * recorrer las mismas colecciones varias veces cuando `balance()` se
+     * llama más de una vez sobre la misma cuenta (ver `FinanceDashboard::loadAccounts()`).
+     */
+    private ?string $cachedBalance = null;
+
+    /**
      * Saldo actual: ingresos/ajustes positivos - gastos/ajustes negativos +/-
      * transferencias, calculado a partir del histórico de movimientos (no se
      * persiste). Los movimientos son la única fuente de verdad — un saldo
@@ -91,6 +101,11 @@ class Account extends Model
      * ManageAccountAction), no como un campo aparte que pudiera desincronizarse.
      */
     public function balance(): string
+    {
+        return $this->cachedBalance ??= $this->computeBalance();
+    }
+
+    private function computeBalance(): string
     {
         $balance = '0';
 

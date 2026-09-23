@@ -41,9 +41,22 @@ class CreateSampleContextAction extends Action
             });
     }
 
+    /**
+     * El botón que dispara esta acción desaparece en cuanto `$contexts` deja
+     * de estar vacío (ver el bloque `@empty`), pero eso pasa después de un
+     * roundtrip — un doble clic antes de que el DOM se actualice podría
+     * lanzar la acción dos veces y duplicar el contexto "Personal" con todo
+     * su árbol de categorías. Este chequeo, dentro de la misma transacción
+     * que la creación, cierra esa ventana en la práctica (aunque sin un
+     * índice único no es una garantía absoluta bajo concurrencia real).
+     */
     private function create(): void
     {
-        DB::transaction(function (): void {
+        $created = DB::transaction(function (): bool {
+            if (FinancialContext::query()->where('name', 'Personal')->exists()) {
+                return false;
+            }
+
             $context = FinancialContext::create([
                 'name' => 'Personal',
                 'is_active' => true,
@@ -69,7 +82,19 @@ class CreateSampleContextAction extends Action
                     }
                 }
             }
+
+            return true;
         });
+
+        if (! $created) {
+            Notification::make()
+                ->title('Ya tienes un contexto "Personal"')
+                ->body('No se creó uno nuevo para evitar duplicarlo.')
+                ->warning()
+                ->send();
+
+            return;
+        }
 
         Notification::make()
             ->title('Contexto "Personal" creado')

@@ -11,9 +11,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Collection;
 use Tequia\Finance\Enums\MovementType;
-use Tequia\Finance\Models\Account;
-use Tequia\Finance\Models\Category;
-use Tequia\Finance\Models\FinancialContext;
+use Tequia\Finance\Filament\Traits\BuildsMovementFormOptions;
 use Tequia\Finance\Models\MovementTemplate;
 
 /**
@@ -28,6 +26,8 @@ use Tequia\Finance\Models\MovementTemplate;
  */
 class ManageMovementTemplateAction extends Action
 {
+    use BuildsMovementFormOptions;
+
     public static function getDefaultName(): ?string
     {
         return 'manageMovementTemplate';
@@ -122,78 +122,6 @@ class ManageMovementTemplateAction extends Action
                 ->label('Plantilla activa (aparece en Frecuentes)')
                 ->default(true),
         ];
-    }
-
-    /**
-     * Igual que `ManageMovementAction::accountOptions()` pero sin filtro de
-     * moneda (aquí no hay transferencias).
-     */
-    private function accountOptions(mixed $currentAccountId): Collection
-    {
-        return Account::query()
-            ->where(fn ($query) => $query
-                ->where('is_active', true)
-                ->when($currentAccountId, fn ($query) => $query->orWhere('id', $currentAccountId)))
-            ->orderBy('name')
-            ->pluck('name', 'id');
-    }
-
-    /**
-     * Igual que `ManageMovementAction::contextOptions()`.
-     */
-    private function contextOptions(mixed $currentContextId): Collection
-    {
-        return FinancialContext::query()
-            ->where(fn ($query) => $query
-                ->where('is_active', true)
-                ->when($currentContextId, fn ($query) => $query->orWhere('id', $currentContextId)))
-            ->orderBy('name')
-            ->pluck('name', 'id');
-    }
-
-    /**
-     * Igual que `ManageMovementAction::categoryOptions()` (categorías del
-     * contexto elegido más las generales, agrupando hijas bajo su padre).
-     *
-     * @return Collection<int|string, string>
-     */
-    private function categoryOptions(?string $type, mixed $contextId, mixed $currentCategoryId): Collection
-    {
-        if (! in_array($type, [MovementType::Income->value, MovementType::Expense->value], true)) {
-            return collect();
-        }
-
-        $contextId = $contextId ?: null;
-
-        $options = [];
-
-        Category::query()
-            ->where('type', $type)
-            ->where('is_active', true)
-            ->where(fn ($query) => $query
-                ->where('financial_context_id', $contextId)
-                ->when($contextId, fn ($query) => $query->orWhereNull('financial_context_id')))
-            ->with(['children' => fn ($query) => $query->where('is_active', true)->orderBy('name')])
-            ->whereNull('parent_id')
-            ->orderBy('name')
-            ->get()
-            ->each(function (Category $category) use (&$options): void {
-                $options[$category->id] = $category->name;
-
-                foreach ($category->children as $child) {
-                    $options[$child->id] = "{$category->name} > {$child->name}";
-                }
-            });
-
-        if ($currentCategoryId && ! isset($options[$currentCategoryId])) {
-            $current = Category::query()->with('parent')->find($currentCategoryId);
-
-            if ($current) {
-                $options[$current->id] = $current->parent ? "{$current->parent->name} > {$current->name}" : $current->name;
-            }
-        }
-
-        return collect($options);
     }
 
     /**

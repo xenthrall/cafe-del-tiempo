@@ -185,22 +185,22 @@ class FinanceDashboard extends Page
             $this->periodUntil = null;
         }
 
-        $this->refreshDashboard();
+        $this->refreshFilteredSections();
     }
 
     public function updatedPeriodFrom(): void
     {
-        $this->refreshDashboard();
+        $this->refreshFilteredSections();
     }
 
     public function updatedPeriodUntil(): void
     {
-        $this->refreshDashboard();
+        $this->refreshFilteredSections();
     }
 
     public function updatedContextId(): void
     {
-        $this->refreshDashboard();
+        $this->refreshFilteredSections();
     }
 
     /**
@@ -238,9 +238,22 @@ class FinanceDashboard extends Page
         return MovementResource::getUrl();
     }
 
+    /**
+     * `loadAccounts()` no depende de ningún filtro de este dashboard (saldo
+     * total = todo el histórico, siempre) — solo cambia cuando se
+     * crea/edita/borra un movimiento real (ver `manageMovementAction()`/
+     * `deleteMovementAction()`). Los filtros de periodo/contexto solo
+     * afectan a las demás secciones, por eso tienen su propio
+     * `refreshFilteredSections()` que se salta el recálculo de saldos.
+     */
     private function refreshDashboard(): void
     {
         $this->loadAccounts();
+        $this->refreshFilteredSections();
+    }
+
+    private function refreshFilteredSections(): void
+    {
         $this->loadPeriodSummary();
         $this->loadMonthlyCashflow();
         $this->loadRecentMovements();
@@ -297,13 +310,21 @@ class FinanceDashboard extends Page
             ->when($end, fn ($query) => $query->whereDate('date', '<=', $end))
             ->when($this->contextId, fn ($query) => $query->where('financial_context_id', $this->contextId));
 
+        // bcadd, no Collection::sum() (que suma con el operador `+` de PHP,
+        // en punto flotante) — mismo criterio que Account::balance(), para
+        // no mezclar dos formas distintas de sumar dinero en la misma app.
+        $sumAmounts = fn (Collection $group): string => $group->reduce(
+            fn (string $carry, Movement $movement): string => bcadd($carry, (string) $movement->amount, 2),
+            '0',
+        );
+
         $incomeByCurrency = $baseQuery(MovementType::Income)->get()
             ->groupBy(fn (Movement $movement): string => $movement->currency())
-            ->map(fn (Collection $group): string => (string) $group->sum('amount'));
+            ->map($sumAmounts);
 
         $expenseByCurrency = $baseQuery(MovementType::Expense)->get()
             ->groupBy(fn (Movement $movement): string => $movement->currency())
-            ->map(fn (Collection $group): string => (string) $group->sum('amount'));
+            ->map($sumAmounts);
 
         $currencies = $incomeByCurrency->keys()->merge($expenseByCurrency->keys())->unique();
         $currencies = $currencies->isEmpty() ? $this->activeCurrencies() : $currencies->sort()->values();
