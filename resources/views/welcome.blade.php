@@ -47,6 +47,7 @@
                 <nav class="hidden md:flex items-center gap-8 text-sm text-stone-600 dark:text-stone-400">
                     <a href="#modulos" class="hover:text-stone-900 dark:hover:text-stone-100 transition-colors">Módulos</a>
                     <a href="#filosofia" class="hover:text-stone-900 dark:hover:text-stone-100 transition-colors">Filosofía</a>
+                    <a href="#opciones" class="hover:text-stone-900 dark:hover:text-stone-100 transition-colors">Opciones</a>
                     <a href="#empezar" class="hover:text-stone-900 dark:hover:text-stone-100 transition-colors">Instalación</a>
                 </nav>
 
@@ -112,9 +113,18 @@
                             Ir a mi Bóveda
                         </a>
                     @else
+                        @if (Route::has('filament.app.auth.register'))
+                            <a
+                                href="{{ route('filament.app.auth.register') }}"
+                                class="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition-colors"
+                            >
+                                Crear cuenta gratis
+                            </a>
+                        @endif
+
                         <a
                             href="{{ route('filament.app.auth.login') }}"
-                            class="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-600 dark:hover:bg-amber-500 font-medium text-sm transition-colors"
+                            class="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white dark:bg-stone-800 dark:hover:bg-stone-700 font-medium text-sm transition-colors"
                         >
                             Entrar a la Bóveda
                         </a>
@@ -129,7 +139,7 @@
                 </div>
 
                 <p class="mt-10 text-xs text-stone-400 dark:text-stone-500">
-                    Cifrado AES-256 &middot; 100% self-hosted &middot; Zero-knowledge
+                    Cifrado AES-256 &middot; Versión alojada o self-hosted &middot; Zero-knowledge en la Bóveda
                 </p>
             </section>
 
@@ -156,6 +166,10 @@
                         <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
                             Contraseñas, secretos, notas confidenciales y cápsulas del tiempo, cifrados antes de guardarse.
                         </p>
+                        <p class="mt-auto pt-3 border-t border-stone-200 dark:border-stone-800 text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
+                            <span class="font-medium text-amber-700 dark:text-amber-400">Zero-knowledge.</span>
+                            Cifrado en tu navegador antes de guardarse — ni siquiera nosotros podemos leer tus contraseñas o secretos.
+                        </p>
                     </div>
 
                     <!-- Finanzas module card -->
@@ -168,6 +182,10 @@
                         <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100">Finanzas Personales</h3>
                         <p class="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
                             Ingresos, gastos, transferencias y ajustes por cuenta y contexto, con informes en Excel y PDF.
+                        </p>
+                        <p class="mt-auto pt-3 border-t border-stone-200 dark:border-stone-800 text-xs text-stone-500 dark:text-stone-400 leading-relaxed">
+                            <span class="font-medium text-emerald-700 dark:text-emerald-400">Cifrado en reposo y acceso restringido.</span>
+                            Necesario para ofrecerte dashboards y reportes útiles sobre tus finanzas.
                         </p>
                     </div>
                 </div>
@@ -189,6 +207,120 @@
                     Un proyecto de
                     <a href="https://tequia.dev/" target="_blank" rel="noopener noreferrer" class="font-medium text-amber-700 dark:text-amber-400 hover:underline">Tequia</a>
                 </p>
+            </section>
+
+            <!-- Hosted vs Self-hosted Comparison -->
+            <section id="opciones" class="flex flex-col gap-10">
+                <div class="text-center max-w-xl mx-auto">
+                    <h2 class="text-2xl font-semibold text-stone-900 dark:text-stone-100 tracking-tight">
+                        Dos formas de usarla
+                    </h2>
+                    <p class="text-sm text-stone-600 dark:text-stone-400 mt-2">
+                        ¿Prefieres empezar sin complicaciones? Crea tu cuenta gratis. ¿Prefieres control total, incluso sobre el servidor? Aloja tu propia instancia. Mismo código, mismo cifrado.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <!-- Hosted option card -->
+                    <div class="flex flex-col gap-5 p-6 rounded-2xl border border-amber-300/70 dark:border-amber-800/60 bg-amber-50/40 dark:bg-amber-950/10">
+                        <div>
+                            <span class="text-xs font-medium uppercase tracking-wider text-amber-700 dark:text-amber-400">Versión alojada</span>
+                            <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100 mt-1">Crea tu cuenta y listo</h3>
+                        </div>
+
+                        <dl class="flex flex-col gap-3 text-sm">
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Para quién</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Quien quiere empezar ya, sin servidores ni configuraciones.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Setup</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Te registras y usas la bóveda y las finanzas en minutos.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Dónde viven tus datos</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">En nuestro servidor. La Bóveda llega ya cifrada desde tu navegador; Finanzas se guarda cifrada en reposo y con acceso restringido.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Mantenimiento</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Nos encargamos del servidor y las actualizaciones.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Costo</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Gratis.</dd>
+                            </div>
+                        </dl>
+
+                        <div class="mt-auto">
+                            @auth
+                                <a
+                                    href="{{ route('filament.app.pages.dashboard') }}"
+                                    class="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition-colors"
+                                >
+                                    Ir al panel
+                                </a>
+                            @else
+                                @if (Route::has('filament.app.auth.register'))
+                                    <a
+                                        href="{{ route('filament.app.auth.register') }}"
+                                        class="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition-colors"
+                                    >
+                                        Crear cuenta gratis
+                                    </a>
+                                @else
+                                    <a
+                                        href="https://cafe.tequia.dev/app/register"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm transition-colors"
+                                    >
+                                        Crear cuenta en cafe.tequia.dev
+                                    </a>
+                                @endif
+                            @endauth
+                        </div>
+                    </div>
+
+                    <!-- Self-hosted option card -->
+                    <div class="flex flex-col gap-5 p-6 rounded-2xl border border-stone-200 dark:border-stone-800">
+                        <div>
+                            <span class="text-xs font-medium uppercase tracking-wider text-stone-500 dark:text-stone-400">Self-hosted</span>
+                            <h3 class="text-base font-semibold text-stone-900 dark:text-stone-100 mt-1">Tu propia instancia</h3>
+                        </div>
+
+                        <dl class="flex flex-col gap-3 text-sm">
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Para quién</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Quien quiere control total, incluso sobre el servidor.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Setup</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Clonas el repo e instalas en tu servidor con unos pocos comandos.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Dónde viven tus datos</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">En tu propio servidor, bajo tu control.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Mantenimiento</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Corre por tu cuenta: actualizaciones, respaldos y seguridad del servidor.</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-stone-400 dark:text-stone-500">Costo</dt>
+                                <dd class="text-stone-700 dark:text-stone-300">Gratis y de código abierto (MIT); solo pagas tu hosting.</dd>
+                            </div>
+                        </dl>
+
+                        <div class="mt-auto">
+                            <a
+                                href="#empezar"
+                                class="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-600 font-medium text-sm transition-colors"
+                            >
+                                Ver instalación
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Quick Start / Getting Started Code Block -->

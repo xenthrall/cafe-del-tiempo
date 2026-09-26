@@ -2,6 +2,7 @@
 
 namespace Tequia\App\Providers;
 
+use Filament\Auth\Pages\Register;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -28,6 +29,7 @@ class AppPanelProvider extends PanelProvider
             ->path('app')
             ->profile(isSimple: false)
             ->login()
+            ->registration(config('app.instance') === 'hosted' ? Register::class : null)
             ->viteTheme('resources/css/filament/app/theme.css')
             ->sidebarCollapsibleOnDesktop()
             ->sidebarLivewireComponent(Sidebar::class)
