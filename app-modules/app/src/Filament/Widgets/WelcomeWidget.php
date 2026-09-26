@@ -3,12 +3,12 @@
 namespace Tequia\App\Filament\Widgets;
 
 use Filament\Widgets\Widget;
+use Illuminate\Support\Str;
 
 /**
- * Vista previa de "Café IA", el futuro asistente integrado en la suite —
- * deliberadamente sin backend todavía (no envía ni responde nada), pero
- * con el pulido visual de una función ya terminada, como referencia de
- * hacia dónde va el producto.
+ * Saludo del dashboard: fecha, saludo según la hora y el nombre de pila del
+ * usuario. Deliberadamente breve — el protagonista del dashboard es el
+ * lanzador de módulos (`AppsGridWidget`) que va justo debajo.
  */
 class WelcomeWidget extends Widget
 {
@@ -27,19 +27,13 @@ class WelcomeWidget extends Widget
         };
     }
 
-    /**
-     * Sugerencias de ejemplo, ancladas a lo que ya existe en la suite
-     * (finanzas, bóveda) para que se sientan creíbles y no genéricas.
-     *
-     * @return array<int, string>
-     */
-    public function getSuggestions(): array
+    public function getFirstName(): string
     {
-        return [
-            '¿Cuánto he gastado este mes?',
-            'Resume el estado de mi bóveda',
-            '¿En qué contexto financiero gasto más?',
-            'Ayúdame a organizar mis cuentas',
-        ];
+        return Str::before(trim(filament()->auth()->user()->name), ' ');
+    }
+
+    public function getToday(): string
+    {
+        return now()->translatedFormat('l, j \d\e F');
     }
 }

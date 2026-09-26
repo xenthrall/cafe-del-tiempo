@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Tequia\Vault\Enums\VaultItemType;
+use Tequia\Vault\Filament\Traits\HidesPageHeader;
 use Tequia\Vault\Models\VaultCryptoSetting;
 use Tequia\Vault\Models\VaultFolder;
 use Tequia\Vault\Models\VaultItem;
@@ -19,12 +20,14 @@ use Tequia\Vault\Models\VaultItemVersion;
 
 /**
  * Bóveda zero-knowledge: todo se cifra/descifra en el navegador (ver
- * resources/js/vault.js). Como la contraseña maestra nunca llega al
+ * resources/js/vault.js). Como la clave maestra nunca llega al
  * servidor, no hay forma de recuperarla: si el usuario la olvida, la única
  * salida es `resetVaultAction()`, que borra todo y genera una sal nueva.
  */
 class VaultDashboard extends Page
 {
+    use HidesPageHeader;
+
     /**
      * Word the user must type (GitHub-style) to confirm a vault reset.
      */
@@ -185,7 +188,7 @@ class VaultDashboard extends Page
             ->modalIcon(Heroicon::OutlinedExclamationTriangle)
             ->modalIconColor('danger')
             ->modalHeading('Reiniciar bóveda')
-            ->modalDescription('Se eliminarán de forma permanente todas tus contraseñas, notas, códigos de recuperación y carpetas. Como tu contraseña nunca sale de tu navegador, no existe ninguna forma de recuperar estos datos. Después podrás crear una contraseña nueva.')
+            ->modalDescription('Se eliminarán de forma permanente todas tus contraseñas, notas, códigos de recuperación y carpetas. Como tu clave maestra nunca sale de tu navegador, no existe ninguna forma de recuperar estos datos. Después podrás crear una clave maestra nueva. La contraseña de tu cuenta de Café del Tiempo no cambia.')
             ->modalSubmitActionLabel('Entiendo, eliminar todo')
             ->modalWidth('md')
             ->schema([
@@ -216,7 +219,7 @@ class VaultDashboard extends Page
 
                 Notification::make()
                     ->title('Bóveda reiniciada')
-                    ->body('Crea una contraseña nueva para empezar de cero.')
+                    ->body('Crea una clave maestra nueva para empezar de cero.')
                     ->success()
                     ->send();
             });

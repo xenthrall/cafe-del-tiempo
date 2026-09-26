@@ -96,7 +96,11 @@ function emptySetupForm() {
  */
 const VERIFIER_PLAINTEXT = 'cafe-del-tiempo:vault-verifier:v1';
 
-const WRONG_PASSWORD_MESSAGE = 'Contraseña incorrecta.';
+/**
+ * Users often type their account (login) password here by mistake, so the
+ * error spells out the difference right when it happens.
+ */
+const WRONG_PASSWORD_MESSAGE = 'Clave maestra incorrecta. Recuerda: no es la contraseña con la que inicias sesión en Café del Tiempo.';
 
 /**
  * Never throws: a single damaged block must not take the rest of the vault down.
@@ -146,6 +150,7 @@ document.addEventListener('alpine:init', () => {
         pendingDeleteItem: null,
 
         filterFolderId: null,
+        onlyFavorites: false,
         filterType: 'all',
         search: '',
         revealedItemIds: [],
@@ -154,6 +159,19 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.$wire.$watch('items', () => this.decryptAll());
             this.$wire.$watch('folders', () => this.decryptAll());
+            this.focusPasswordInput();
+        },
+
+        /**
+         * Desktop only: on mobile, auto-focusing would pop the keyboard over the
+         * no-recovery warning before the user has had a chance to read it.
+         */
+        focusPasswordInput() {
+            if (!window.matchMedia('(min-width: 1024px)').matches) {
+                return;
+            }
+
+            this.$nextTick(() => (this.isNewVault ? this.$refs.newPasswordInput : this.$refs.passwordInput)?.focus());
         },
 
         /**
@@ -179,11 +197,11 @@ document.addEventListener('alpine:init', () => {
             const { password, passwordConfirmation } = this.setupForm;
 
             if (password && password.length < MIN_MASTER_PASSWORD_LENGTH) {
-                return `La contraseña debe tener al menos ${MIN_MASTER_PASSWORD_LENGTH} caracteres.`;
+                return `La clave maestra debe tener al menos ${MIN_MASTER_PASSWORD_LENGTH} caracteres.`;
             }
 
             if (passwordConfirmation && password !== passwordConfirmation) {
-                return 'Las contraseñas no coinciden.';
+                return 'Las claves no coinciden.';
             }
 
             return null;
@@ -235,7 +253,7 @@ document.addEventListener('alpine:init', () => {
 
                     if (!hasReadableBlock && !isBrandNewVault) {
                         this.unlockError = blocks.length === 0
-                            ? `${WRONG_PASSWORD_MESSAGE} Tu bóveda está vacía: si no recuerdas la contraseña, puedes reiniciarla sin perder nada.`
+                            ? `${WRONG_PASSWORD_MESSAGE} Tu bóveda está vacía: si no recuerdas la clave maestra, puedes reiniciarla sin perder nada.`
                             : WRONG_PASSWORD_MESSAGE;
 
                         return;
@@ -250,7 +268,7 @@ document.addEventListener('alpine:init', () => {
                 this.unlocked = true;
             } catch (error) {
                 console.error('[vault] unlock failed', error);
-                this.unlockError = 'No se pudo desbloquear la bóveda. Verifica tu contraseña.';
+                this.unlockError = 'No se pudo desbloquear la bóveda. Verifica tu clave maestra.';
                 this.key = null;
             } finally {
                 this.password = '';
@@ -265,10 +283,12 @@ document.addEventListener('alpine:init', () => {
             this.decryptedFolders = [];
             this.decryptedItems = [];
             this.filterFolderId = null;
+            this.onlyFavorites = false;
             this.filterType = 'all';
             this.search = '';
             this.revealedItemIds = [];
             this.itemForm = emptyItemForm();
+            this.focusPasswordInput();
         },
 
         async decryptFolders(key, folders) {
@@ -317,13 +337,8 @@ document.addEventListener('alpine:init', () => {
 
             return this.decryptedItems
                 .filter((item) => this.filterFolderId === null || item.folderId === this.filterFolderId)
-                .filter((item) => {
-                    if (this.filterType === 'all') {
-                        return true;
-                    }
-
-                    return this.filterType === 'favorites' ? item.isFavorite : item.type === this.filterType;
-                })
+                .filter((item) => !this.onlyFavorites || item.isFavorite)
+                .filter((item) => this.filterType === 'all' || item.type === this.filterType)
                 .filter((item) => {
                     if (!search) {
                         return true;
@@ -339,12 +354,38 @@ document.addEventListener('alpine:init', () => {
             return this.decryptedItems.filter((item) => item.isFavorite).length;
         },
 
-        get hasActiveFilters() {
-            return this.filterFolderId !== null || this.filterType !== 'all' || this.search.trim() !== '';
+        /**
+         * A "collection" is what the sidebar (desktop) or the chip row (mobile)
+         * selects: 'all', 'favorites' or a folder id. The type filter and the
+         * search apply on top of it.
+         */
+        selectCollection(collection) {
+            this.onlyFavorites = collection === 'favorites';
+            this.filterFolderId = typeof collection === 'number' ? collection : null;
+        },
+
+        isCollectionActive(collection) {
+            if (collection === 'favorites') {
+                return this.onlyFavorites;
+            }
+
+            if (collection === 'all') {
+                return !this.onlyFavorites && this.filterFolderId === null;
+            }
+
+            return this.filterFolderId === collection;
+        },
+
+        get activeCollectionLabel() {
+            if (this.onlyFavorites) {
+                return 'Favoritos';
+            }
+
+            return this.filterFolderId === null ? 'Todos los ítems' : this.folderLabel(this.filterFolderId);
         },
 
         clearFilters() {
-            this.filterFolderId = null;
+            this.selectCollection('all');
             this.filterType = 'all';
             this.search = '';
         },
