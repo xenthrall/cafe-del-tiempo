@@ -130,3 +130,75 @@
 .fi-sidebar-nav::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-500;
 }
+
+/*
+|--------------------------------------------------------------------------
+| Auth (login / registro)
+|--------------------------------------------------------------------------
+|
+| Solo aplica al layout de marca `app::filament.auth.layout`. Cambia el
+| color primario a ámbar (el de la landing) sin tocar el resto del panel.
+|
+*/
+
+.cdt-auth {
+    --primary-50: oklch(0.987 0.022 95.277);
+    --primary-100: oklch(0.962 0.059 95.617);
+    --primary-200: oklch(0.924 0.12 95.746);
+    --primary-300: oklch(0.879 0.169 91.605);
+    --primary-400: oklch(0.828 0.189 84.429);
+    --primary-500: oklch(0.769 0.188 70.08);
+    --primary-600: oklch(0.666 0.179 58.318);
+    --primary-700: oklch(0.555 0.163 48.998);
+    --primary-800: oklch(0.473 0.137 46.201);
+    --primary-900: oklch(0.414 0.112 45.904);
+    --primary-950: oklch(0.279 0.077 45.635);
+
+    --color-primary-50: var(--primary-50);
+    --color-primary-100: var(--primary-100);
+    --color-primary-200: var(--primary-200);
+    --color-primary-300: var(--primary-300);
+    --color-primary-400: var(--primary-400);
+    --color-primary-500: var(--primary-500);
+    --color-primary-600: var(--primary-600);
+    --color-primary-700: var(--primary-700);
+    --color-primary-800: var(--primary-800);
+    --color-primary-900: var(--primary-900);
+    --color-primary-950: var(--primary-950);
+
+    & .fi-simple-page-content {
+        @apply gap-y-8;
+    }
+
+    & .fi-simple-header {
+        @apply items-start;
+    }
+
+    & .fi-simple-header-heading {
+        @apply text-left text-3xl font-semibold text-stone-950 dark:text-stone-50;
+    }
+
+    & .fi-simple-header-subheading {
+        @apply text-left text-sm text-stone-500 dark:text-stone-400;
+    }
+
+    & .fi-input-wrp {
+        @apply rounded-xl bg-white shadow-none ring-stone-300 dark:bg-stone-900/60 dark:ring-stone-700;
+    }
+
+    & .fi-input {
+        @apply py-2.5;
+    }
+
+    & .fi-fo-field-label-content {
+        @apply text-stone-700 dark:text-stone-300;
+    }
+
+    & .fi-btn {
+        @apply rounded-xl py-2.5;
+    }
+
+    & .fi-link {
+        @apply font-medium;
+    }
+}

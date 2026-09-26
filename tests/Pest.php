@@ -53,7 +53,13 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Panel routes are registered while the app boots, so the instance mode has
+ * to be set in the environment before booting a fresh application.
+ */
+function bootInstance(string $mode): void
 {
-    // ..
+    $_SERVER['APP_INSTANCE'] = $_ENV['APP_INSTANCE'] = $mode;
+
+    test()->refreshApplication();
 }

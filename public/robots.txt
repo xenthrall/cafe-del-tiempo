@@ -1,2 +1,5 @@
 User-agent: *
-Disallow:
+Disallow: /app
+Disallow: /system
+
+Sitemap: https://cafe.tequia.dev/sitemap.xml

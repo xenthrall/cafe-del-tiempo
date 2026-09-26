@@ -1,60 +1,65 @@
-# Finanzas — módulo `finance`
+# Finance — finanzas personales
 
-Registro y análisis de finanzas personales: ingresos, gastos, transferencias, cuentas y contextos financieros. Multiusuario: cada usuario ve y gestiona únicamente sus propios datos.
+Registro y análisis de finanzas personales: cuentas, ingresos, gastos, transferencias y ajustes, organizados por contextos y categorías, con dashboards y reportes. Cada usuario ve y gestiona solo sus propios datos.
 
-Última actualización: 2026-09-22.
+Última actualización: 2026-09-26.
+
+## Privacidad
+
+Este módulo **no es zero-knowledge**. Los datos se guardan en la base de datos sin cifrado a nivel de aplicación, porque el servidor necesita sumarlos, filtrarlos y agregarlos para los dashboards y reportes. La protección es el aislamiento por usuario (ver abajo) y la seguridad normal de la aplicación y del servidor.
 
 ## Modelo de datos
 
-Namespace `Tequia\Finance`, migraciones en `app-modules/finance/database/migrations/`, modelos en `app-modules/finance/src/Models/`.
+Namespace `Tequia\Finance`. Migraciones en `app-modules/finance/database/migrations/`, modelos en `app-modules/finance/src/Models/`.
 
 | Tabla | Columnas propias | Relaciones |
 | --- | --- | --- |
-| `finance_financial_contexts` | `user_id`, `name`, `is_active` | tiene muchas `finance_categories`, `finance_movements` |
-| `finance_accounts` | `user_id`, `name`, `type` (enum `AccountType`: `cash`, `bank`, `digital_wallet`, `credit_card`), `currency` (enum `Currency`: `COP`, `USD`, `EUR`, `MXN`, `ARS`, `BRL`), `is_active` | tiene muchos `finance_movements` (como `account_id`, `from_account_id`, `to_account_id`) |
-| `finance_categories` | `user_id`, `name`, `type` (enum `CategoryType`: `income`, `expense`), `parent_id` (auto-referencia, para jerarquía tipo `Transporte > Combustible`, máximo 2 niveles: una categoría con `parent_id` no puede a su vez tener hijas — ver `ManageCategoryAction`), `financial_context_id` (nullable), `is_active` | pertenece a un `parent`, a un `financialContext` |
-| `finance_movements` | `user_id`, `type` (enum `MovementType`: `income`, `expense`, `transfer`, `adjustment`), `account_id`, `from_account_id`/`to_account_id` (solo `transfer`), `category_id` (solo `income`/`expense`), `financial_context_id`, `amount`, `date`, `description` | pertenece a `account`/`fromAccount`/`toAccount`, `category`, `financialContext` |
-| `finance_movement_templates` | `user_id`, `name`, `type` (solo `income`/`expense`), `account_id`, `category_id` (nullable), `financial_context_id` (nullable), `amount` (siempre fijo, a diferencia de `finance_movements`), `description` (nullable), `is_active` | pertenece a `account`, `category`, `financialContext` — sin relación con `finance_movements`, es solo un molde para precargar el formulario (ver `MovementTemplate::toMovementFormData()`) |
+| `finance_financial_contexts` | `user_id`, `name`, `is_active` | Tiene muchas categorías y movimientos. |
+| `finance_accounts` | `user_id`, `name`, `type` (`AccountType`: `cash`, `bank`, `digital_wallet`, `credit_card`), `currency` (`Currency`: `COP`, `USD`, `EUR`, `MXN`, `ARS`, `BRL`), `is_active` | Tiene muchos movimientos (como `account_id`, `from_account_id` o `to_account_id`). |
+| `finance_categories` | `user_id`, `name`, `type` (`CategoryType`: `income`, `expense`), `parent_id`, `financial_context_id` (nullable), `is_active` | Jerarquía de máximo 2 niveles (`Transporte > Combustible`): una subcategoría no puede tener hijas (ver `ManageCategoryAction`). |
+| `finance_movements` | `user_id`, `type` (`MovementType`: `income`, `expense`, `transfer`, `adjustment`), `account_id`, `from_account_id` / `to_account_id` (solo `transfer`), `category_id` (solo `income` / `expense`), `financial_context_id`, `amount`, `date`, `description` | Pertenece a cuenta(s), categoría y contexto. |
+| `finance_movement_templates` | `user_id`, `name`, `type` (solo `income` / `expense`), `account_id`, `category_id` (nullable), `financial_context_id` (nullable), `amount` (fijo), `description` (nullable), `is_active` | Molde para precargar el formulario de movimiento (`MovementTemplate::toMovementFormData()`). No se relaciona con los movimientos que genera. |
 
-Todas las tablas están en texto plano — no hay cifrado selectivo de datos financieros (se necesitan sumar, filtrar y analizar en servidor). Se usan las medidas normales de seguridad de la app.
+### Saldos
 
-**`user_id` es obligatorio en las cinco tablas** y usa `restrictOnDelete()` hacia `users`: no se puede borrar un usuario que tenga cualquier dato financiero registrado.
+El saldo de una cuenta **no se guarda**: `Account::balance()` lo calcula a partir de sus movimientos con `bcmath`, sin errores de punto flotante. No hay columna de saldo inicial: al crear una cuenta, el saldo inicial se registra como un movimiento `adjustment` (ver `ManageAccountAction`). Así los movimientos son la única fuente de verdad.
 
-Otras reglas de borrado (`restrictOnDelete` salvo que se indique lo contrario):
-- `finance_movements.account_id`/`from_account_id`/`to_account_id` → no se puede borrar una cuenta con movimientos.
-- `finance_movements.category_id`, `finance_movements.financial_context_id` → no se puede borrar una categoría/contexto con movimientos.
-- `finance_categories.parent_id`, `finance_categories.financial_context_id` → `nullOnDelete`: borrar el padre/contexto solo desvincula, no borra la categoría.
-- `finance_movement_templates.account_id` → `restrictOnDelete` (ver `Account::hasMovementTemplates()`): no se puede borrar una cuenta usada por una plantilla. `category_id`/`financial_context_id` sí usan `nullOnDelete` — una plantilla no es historial real, perder su categorización no es destructivo.
+### Reglas de borrado
 
-El saldo de una cuenta **no se persiste**: `Account::balance()` lo calcula sumando sus movimientos (con `bcmath`, sin errores de punto flotante). No existe una columna de saldo inicial — al crear una cuenta, lo que el usuario indique como saldo inicial se registra como un movimiento de tipo `adjustment` más (ver `ManageAccountAction::save()`), para que los movimientos sean la única fuente de verdad y nunca puedan desincronizarse de un campo aparte.
+- `user_id` en las cinco tablas → `restrictOnDelete`: no se puede borrar un usuario con datos financieros.
+- Movimientos → cuentas, categoría y contexto con `restrictOnDelete`: no se puede borrar una cuenta, categoría o contexto con movimientos.
+- `finance_categories.parent_id` y `financial_context_id` → `nullOnDelete`: borrar el padre o el contexto solo desvincula.
+- `finance_movement_templates.account_id` → `restrictOnDelete` (ver `Account::hasMovementTemplates()`). Su `category_id` y `financial_context_id` usan `nullOnDelete`, porque una plantilla no es historial.
 
 ## Aislamiento por usuario
 
-Los 4 modelos usan el trait `Tequia\Finance\Models\Concerns\BelongsToUser`:
-- Agrega un **scope global** que filtra toda consulta Eloquent por `user_id = auth()->id()` — no hace falta acordarse de filtrar manualmente en ningún resource, página o acción.
-- Al crear un registro, asigna `user_id` automáticamente desde el usuario autenticado si no se indicó explícitamente.
-- Las reglas de validación (`SaveMovement::rules()`) también exigen que las cuentas/categorías/contextos referenciados (`account_id`, `category_id`, etc.) pertenezcan al usuario autenticado — no solo que existan.
-
-Consecuencia práctica: cualquier `Account::query()`, `Movement::query()`, etc. en el código ya está scopeado; una consulta que necesite ver todos los usuarios tendría que usar explícitamente `withoutGlobalScope('user')`.
+Los cinco modelos usan el trait `Tequia\Finance\Models\Concerns\BelongsToUser`:
+- **Scope global:** toda consulta Eloquent se filtra por `user_id = auth()->id()`. Para ver datos de todos los usuarios habría que usar explícitamente `withoutGlobalScope('user')`.
+- **Asignación automática:** al crear un registro, `user_id` se toma del usuario autenticado si no se pasó.
+- **Validación:** `SaveMovement::rules()` exige que las cuentas, categorías y contextos referenciados pertenezcan al usuario, no solo que existan.
 
 ## Lógica de negocio
 
-- **`Tequia\Finance\Actions\SaveMovement`**: única puerta de entrada para crear/editar un movimiento. Valida según `type` y anula los campos que no aplican (p. ej. una transferencia nunca lleva `category_id`).
-- **Borrado protegido en UI**: `Account::hasMovements()` / `FinancialContext::hasMovements()` / `Category::hasMovements()` permiten avisar antes de intentar borrar (el respaldo real es la restricción de base de datos de arriba).
-- **`Tequia\Finance\Support\Money`**: formatea montos en pesos colombianos (`$ 1.234.567,89`).
+- **`Actions\SaveMovement`:** única puerta de entrada para crear o editar movimientos. Valida según el `type`, anula los campos que no aplican (una transferencia nunca lleva categoría) y solo permite transferencias entre cuentas de la misma moneda.
+- **Moneda de la cuenta:** se bloquea en el formulario cuando la cuenta ya tiene movimientos, porque cambiarla cambiaría el significado de los montos registrados.
+- **Borrado protegido en la UI:** `hasMovements()` en cuentas, categorías y contextos permite avisar antes de intentar borrar. La restricción real está en la base de datos.
+- **`Support\Money`:** formatea montos en la moneda de cada cuenta (cualquier código ISO 4217, COP por defecto) con `intl`.
+- **`Support\PersonalContextTemplate`:** árbol de categorías de ejemplo para el contexto "Personal".
 
-## Interfaz (Filament)
+## Interfaz
 
-Páginas custom (no CRUD genérico de Filament):
+Páginas propias, no el CRUD genérico de Filament:
 
-- **`/app/accounts`** (`ManageAccounts`): tarjetas de cuentas con saldo en vivo, crear/editar/archivar/eliminar.
-- **`/app/movements`** (`ManageMovements`): listado con tabla real de Filament (paginación, dos vistas: tarjetas/columnas), filtros por tipo/periodo/contexto/categoría, exportación a Excel o PDF del listado filtrado.
-- **`/app/financial-contexts`** (`ManageFinancialContexts`): gestión combinada de contextos y sus categorías en una sola pantalla tipo maestro-detalle. Si el usuario todavía no tiene ningún contexto, puede crear uno "Personal" de ejemplo con un árbol de categorías predefinido (`CreateSampleContextAction` + `PersonalContextTemplate`), para empezar a registrar movimientos sin diseñar su propia estructura desde cero.
-- **`/app/movement-templates`** (`ManageMovementTemplates`, "Frecuentes"): plantillas de movimientos recurrentes (arriendo, Netflix, salario…), solo `income`/`expense` y con monto fijo. El botón "Registrar" de cada plantilla abre el modal de "Nuevo movimiento" (`ManageMovementAction`) ya precargado — el usuario solo confirma la fecha y guarda.
-- **`/app/finance-dashboard`** (`FinanceDashboard`): saldo total, ingresos/gastos/neto del periodo filtrado, tendencia de 6 meses, desglose de gastos/ingresos por contexto o categoría, movimientos recientes editables desde ahí mismo.
+| Ruta | Página | Qué hace |
+| --- | --- | --- |
+| `/app/finance-dashboard` | `FinanceDashboard` | Saldo total, ingresos, gastos y neto del periodo, tendencia de 6 meses, desglose por contexto o categoría y movimientos recientes editables. |
+| `/app/accounts` | `ManageAccounts` | Tarjetas de cuentas con saldo en vivo: crear, editar, archivar y eliminar. |
+| `/app/movements` | `ManageMovements` | Tabla con vista de tarjetas o columnas, filtros por tipo, periodo, contexto y categoría, y reporte en Excel (OpenSpout) o PDF (`barryvdh/laravel-dompdf`) de lo filtrado. |
+| `/app/financial-contexts` | `ManageFinancialContexts` | Contextos y sus categorías en una vista maestro-detalle. Si el usuario no tiene contextos, puede crear el "Personal" de ejemplo (`CreateSampleContextAction`). |
+| `/app/movement-templates` | `ManageMovementTemplates` ("Frecuentes") | Plantillas de movimientos recurrentes (arriendo, salario…). "Registrar" abre el formulario de movimiento precargado. |
 
-## Cosas a tener en cuenta
+## A tener en cuenta
 
-- Las migraciones existentes **ya están en producción** — no se editan directamente. Todo cambio de esquema va en una migración nueva (`php artisan make:migration`), aunque sea para ajustar una tabla creada hace poco.
-- No hay conversión automática entre monedas: cada cuenta tiene la suya, y una transferencia solo se permite entre cuentas de la misma moneda.
-- No hay soporte para préstamos/deudas con terceros, ni recurrencia programada, ni informes tributarios — quedan fuera del alcance actual.
+- **Migraciones en producción:** no se editan. Cualquier cambio de esquema va en una migración nueva.
+- **Sin conversión de monedas:** cada cuenta tiene la suya y no hay tipos de cambio.
+- **Fuera de alcance por ahora:** préstamos y deudas con terceros, movimientos recurrentes automáticos e informes tributarios.

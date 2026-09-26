@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Instance Mode
+    |--------------------------------------------------------------------------
+    |
+    | "self-hosted" (default) is a private instance: registration is closed
+    | and accounts are created by an administrator from the system panel.
+    | "hosted" is the public instance, where anyone can create an account.
+    |
+    */
+
+    'instance' => env('APP_INSTANCE', 'self-hosted'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
