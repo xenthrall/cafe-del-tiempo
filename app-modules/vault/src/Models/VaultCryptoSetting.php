@@ -11,7 +11,9 @@ use Tequia\Vault\Models\Concerns\BelongsToUser;
  * One row per user (`user_id` unique): holds the Argon2id salt and KDF
  * parameters clients need to re-derive that user's vault encryption key.
  * None of this is secret — the server never sees the master password or
- * the key. `current()` relies on the `BelongsToUser` scope to resolve to
+ * the key. `encrypted_verifier` is a known constant encrypted with that key:
+ * the client decrypts it first on unlock to tell a wrong password apart from
+ * corrupted items (AES-GCM fails the same way in both cases). `current()` relies on the `BelongsToUser` scope to resolve to
  * the authenticated user's own row.
  */
 class VaultCryptoSetting extends Model
@@ -39,6 +41,7 @@ class VaultCryptoSetting extends Model
     protected $fillable = [
         'user_id',
         'key_salt',
+        'encrypted_verifier',
         'kdf_memory_cost',
         'kdf_iterations',
         'kdf_parallelism',
