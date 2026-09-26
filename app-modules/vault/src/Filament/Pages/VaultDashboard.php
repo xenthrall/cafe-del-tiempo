@@ -3,18 +3,36 @@
 namespace Tequia\Vault\Filament\Pages;
 
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Tequia\Vault\Enums\VaultItemType;
+use Tequia\Vault\Filament\Traits\HidesPageHeader;
 use Tequia\Vault\Models\VaultCryptoSetting;
 use Tequia\Vault\Models\VaultFolder;
 use Tequia\Vault\Models\VaultItem;
 use Tequia\Vault\Models\VaultItemVersion;
 
+/**
+ * Bóveda zero-knowledge: todo se cifra/descifra en el navegador (ver
+ * resources/js/vault.js). Como la clave maestra nunca llega al
+ * servidor, no hay forma de recuperarla: si el usuario la olvida, la única
+ * salida es `resetVaultAction()`, que borra todo y genera una sal nueva.
+ */
 class VaultDashboard extends Page
 {
+    use HidesPageHeader;
+
+    /**
+     * Word the user must type (GitHub-style) to confirm a vault reset.
+     */
+    const RESET_CONFIRMATION_WORD = 'eliminar';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLockClosed;
 
     protected static ?string $navigationLabel = 'Bóveda';
@@ -46,6 +64,24 @@ class VaultDashboard extends Page
         $this->refreshCryptoSettings();
         $this->refreshFolders();
         $this->refreshItems();
+    }
+
+    /**
+     * Stores (or replaces) the password verifier. The server can't check the
+     * password itself, so the client only calls this once it has proven the
+     * key is right: a brand-new vault, or at least one real item/folder that
+     * decrypted — which is also how a damaged verifier gets repaired.
+     */
+    public function storeVerifier(string $encryptedVerifier): void
+    {
+        Validator::make(
+            ['encrypted_verifier' => $encryptedVerifier],
+            ['encrypted_verifier' => ['required', 'string']],
+        )->validate();
+
+        VaultCryptoSetting::query()->update(['encrypted_verifier' => $encryptedVerifier]);
+
+        $this->refreshCryptoSettings();
     }
 
     public function createFolder(string $encryptedName): void
@@ -137,12 +173,65 @@ class VaultDashboard extends Page
         $this->refreshItems();
     }
 
+    /**
+     * Permanently wipes every item (including soft-deleted ones and their
+     * versions), folder and the KDF salt, so the user can start over with
+     * a new master password. Irreversible by design.
+     */
+    public function resetVaultAction(): Action
+    {
+        return Action::make('resetVault')
+            ->label('Reiniciar bóveda')
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->color('danger')
+            ->link()
+            ->modalIcon(Heroicon::OutlinedExclamationTriangle)
+            ->modalIconColor('danger')
+            ->modalHeading('Reiniciar bóveda')
+            ->modalDescription('Se eliminarán de forma permanente todas tus contraseñas, notas, códigos de recuperación y carpetas. Como tu clave maestra nunca sale de tu navegador, no existe ninguna forma de recuperar estos datos. Después podrás crear una clave maestra nueva. La contraseña de tu cuenta de Café del Tiempo no cambia.')
+            ->modalSubmitActionLabel('Entiendo, eliminar todo')
+            ->modalWidth('md')
+            ->schema([
+                TextInput::make('confirmation')
+                    ->label('Para confirmar, escribe «'.self::RESET_CONFIRMATION_WORD.'»')
+                    ->placeholder(self::RESET_CONFIRMATION_WORD)
+                    ->autocomplete(false)
+                    ->required()
+                    ->in([self::RESET_CONFIRMATION_WORD])
+                    ->validationMessages([
+                        'in' => 'Escribe exactamente «'.self::RESET_CONFIRMATION_WORD.'» para confirmar.',
+                    ]),
+            ])
+            ->action(function (): void {
+                DB::transaction(function (): void {
+                    // Builder::forceDelete() skips global scopes, so the
+                    // BelongsToUser scope must be restated explicitly here.
+                    VaultItem::query()->withTrashed()->where('user_id', auth()->id())->forceDelete();
+                    VaultFolder::query()->delete();
+                    VaultCryptoSetting::query()->delete();
+                });
+
+                $this->refreshCryptoSettings();
+                $this->refreshFolders();
+                $this->refreshItems();
+
+                $this->dispatch('vault-reset');
+
+                Notification::make()
+                    ->title('Bóveda reiniciada')
+                    ->body('Crea una clave maestra nueva para empezar de cero.')
+                    ->success()
+                    ->send();
+            });
+    }
+
     private function refreshCryptoSettings(): void
     {
         $settings = VaultCryptoSetting::current() ?? VaultCryptoSetting::bootstrap();
 
         $this->cryptoSettings = [
             'keySalt' => $settings->key_salt,
+            'encryptedVerifier' => $settings->encrypted_verifier,
             'kdfMemoryCost' => $settings->kdf_memory_cost,
             'kdfIterations' => $settings->kdf_iterations,
             'kdfParallelism' => $settings->kdf_parallelism,

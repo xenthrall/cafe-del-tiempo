@@ -25,6 +25,28 @@ it('bootstraps crypto settings the first time the page loads', function () {
     expect(VaultCryptoSetting::current())->not->toBeNull();
 });
 
+it('stores the password verifier the first time', function () {
+    Livewire::test(VaultDashboard::class)
+        ->call('storeVerifier', 'verifier-blob')
+        ->assertHasNoErrors()
+        ->assertSet('cryptoSettings.encryptedVerifier', 'verifier-blob');
+
+    expect(VaultCryptoSetting::current()->encrypted_verifier)->toBe('verifier-blob');
+});
+
+it('replaces a damaged password verifier', function () {
+    VaultCryptoSetting::factory()->create([
+        'user_id' => auth()->id(),
+        'encrypted_verifier' => 'damaged-verifier',
+    ]);
+
+    Livewire::test(VaultDashboard::class)
+        ->call('storeVerifier', 'repaired-verifier')
+        ->assertSet('cryptoSettings.encryptedVerifier', 'repaired-verifier');
+
+    expect(VaultCryptoSetting::current()->encrypted_verifier)->toBe('repaired-verifier');
+});
+
 it('creates a folder from an already-encrypted name', function () {
     Livewire::test(VaultDashboard::class)
         ->call('createFolder', 'opaque-cipher-blob')
@@ -80,4 +102,52 @@ it('soft deletes an item', function () {
     Livewire::test(VaultDashboard::class)->call('deleteItem', $item->id);
 
     $this->assertSoftDeleted($item);
+});
+
+it('resets the vault when the user types the confirmation word', function () {
+    Livewire::test(VaultDashboard::class)->call('storeVerifier', 'verifier-blob');
+    $originalSalt = VaultCryptoSetting::current()->key_salt;
+
+    $item = VaultItem::factory()->create(['user_id' => auth()->id()]);
+    VaultItemVersion::factory()->create(['user_id' => auth()->id(), 'vault_item_id' => $item->id]);
+    VaultItem::factory()->create(['user_id' => auth()->id()])->delete();
+    VaultFolder::factory()->create(['user_id' => auth()->id()]);
+
+    Livewire::test(VaultDashboard::class)
+        ->mountAction('resetVault')
+        ->set('mountedActions.0.data.confirmation', VaultDashboard::RESET_CONFIRMATION_WORD)
+        ->callMountedAction()
+        ->assertHasNoActionErrors()
+        ->assertDispatched('vault-reset')
+        ->assertSet('items', [])
+        ->assertSet('folders', []);
+
+    expect(VaultItem::withTrashed()->count())->toBe(0)
+        ->and(VaultItemVersion::query()->count())->toBe(0)
+        ->and(VaultFolder::query()->count())->toBe(0)
+        ->and(VaultCryptoSetting::current()->key_salt)->not->toBe($originalSalt)
+        ->and(VaultCryptoSetting::current()->encrypted_verifier)->toBeNull();
+});
+
+it('does not reset the vault without the exact confirmation word', function () {
+    VaultItem::factory()->create(['user_id' => auth()->id()]);
+
+    Livewire::test(VaultDashboard::class)
+        ->mountAction('resetVault')
+        ->set('mountedActions.0.data.confirmation', 'ELIMINAR')
+        ->callMountedAction()
+        ->assertHasActionErrors(['confirmation' => 'in']);
+
+    expect(VaultItem::query()->count())->toBe(1);
+});
+
+it('only resets the authenticated user vault', function () {
+    $otherUserItem = VaultItem::factory()->create();
+
+    Livewire::test(VaultDashboard::class)
+        ->mountAction('resetVault')
+        ->set('mountedActions.0.data.confirmation', VaultDashboard::RESET_CONFIRMATION_WORD)
+        ->callMountedAction();
+
+    expect(VaultItem::withoutGlobalScopes()->whereKey($otherUserItem->id)->exists())->toBeTrue();
 });
