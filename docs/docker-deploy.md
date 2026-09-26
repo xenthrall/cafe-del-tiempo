@@ -1,8 +1,8 @@
 # Despliegue manual con Docker — guía paso a paso
 
-Esta guía documenta cómo desplegar el proyecto **a mano** en un servidor, usando Docker y Docker Compose, sin pipeline de por medio. Es la base para poder automatizar después con Bitbucket Pipelines (ver [`ci-cd.md`](ci-cd.md)) — antes de automatizar un paso conviene poder hacerlo bien a mano y entender qué hace cada comando.
+Esta guía documenta cómo desplegar el proyecto **a mano** en un servidor con Docker y Docker Compose. Es el flujo con el que se despliega cafe.tequia.dev; la automatización con Bitbucket Pipelines está en [`ci-cd.md`](ci-cd.md).
 
-No cubre dominio/TLS/reverse proxy delante del puerto expuesto, ni backups — son decisiones pendientes, anotadas al final.
+Cubre también HTTPS detrás de un proxy inverso y los respaldos. La versión resumida para usuarios está en la guía pública: [cafe.tequia.dev/docs/instalacion](https://cafe.tequia.dev/docs/instalacion).
 
 ## Qué debe tener instalado el servidor
 
@@ -22,11 +22,11 @@ No hace falta instalar PHP, Composer ni Node en el servidor. Los assets del fron
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://bitbucket.org/tequia/cafe-del-tiempo.git
+git clone https://github.com/xenthrall/cafe-del-tiempo.git
 cd cafe-del-tiempo
 ```
 
-(Esto es justo lo que ya hiciste — el repo queda en `~/cafe-del-tiempo` sobre `main`.)
+El repo queda en `~/cafe-del-tiempo` sobre `main`.
 
 ### 2. Crear el archivo de entorno `.env`
 
@@ -43,6 +43,8 @@ Edita `.env` (`nano .env`) y ajusta al menos:
 | `APP_URL` | La URL pública real, con el esquema correcto: `http://TU_IP:9000` si accedes directo, o `https://tu-dominio` si hay un reverse proxy/túnel (Cloudflare Tunnel, nginx, etc.) delante que sirve HTTPS |
 | `DB_PASSWORD` | Una contraseña fuerte — queda vacía en el ejemplo, Postgres no arranca sano sin ella |
 | `APP_KEY` | Se genera en el paso 3, déjala vacía por ahora |
+| `APP_INSTANCE` | `self-hosted` (por defecto, registro cerrado) o `hosted` (registro público, como cafe.tequia.dev) |
+| `R2_PRIVATE_*` | Credenciales del bucket de Cloudflare R2 para los respaldos (ver [Respaldos](#respaldos)) |
 | `SESSION_SECURE_COOKIE` | `true` si `APP_URL` es `https://...` (evita que la cookie de sesión viaje sin el flag `Secure`) |
 
 El resto de valores del `.env.docker.example` (nombres de conexión, `DB_HOST=postgres`, colas por base de datos, etc.) ya están pensados para este `docker-compose.yml` — no los cambies salvo que sepas por qué.
@@ -115,13 +117,13 @@ docker compose exec app php artisan migrate --force
 
 ### 8. Crear un usuario para entrar al panel
 
-El panel de administración (Filament) vive en `/app` (definido en `AppPanelProvider`). Crea tu primer usuario:
+El panel personal (Filament) vive en `/app` y el de administración de la instancia en `/system`. Crea tu primer usuario como administrador para tener acceso a ambos:
 
 ```bash
-docker compose exec app php artisan make:filament-user
+docker compose exec app php artisan user:create --admin
 ```
 
-Sigue el prompt (nombre, email, contraseña) y entra en `http://TU_IP:9000/app`.
+Sigue el prompt (nombre, email, contraseña) y entra en `http://TU_IP:9000/app`. Sin `--admin` el usuario solo entra a `/app`; `--name` y `--email` evitan escribirlos en el prompt (la contraseña siempre se pide de forma interactiva).
 
 Si el firewall del servidor bloquea el puerto por defecto, ábrelo (ejemplo con `ufw`):
 
@@ -146,6 +148,34 @@ docker compose up -d
 
 `trustProxies(at: '*')` confía en **cualquier** IP como proxy — válido aquí porque el puerto de `app` (PHP-FPM) no se publica al host, solo `nginx` lo hace, así que lo único que puede hablarle a `app` es el propio `nginx` del mismo `docker-compose.yml` (su IP en la red interna de Docker cambia entre despliegues, por eso no se puede fijar una IP concreta). Si el día de mañana expones `app` directamente a internet sin `nginx`/proxy de por medio, esta confianza total dejaría de ser segura y habría que restringirla a una IP fija.
 
+## Respaldos
+
+El servicio `scheduler` ejecuta dos tareas diarias, definidas en `app-modules/system/routes/console.php`:
+
+| Hora | Comando | Qué hace |
+|---|---|---|
+| 01:30 | `backup:clean` | Borra los respaldos viejos según la retención de `config/backup.php`. |
+| 02:00 | `backup:run --only-db` | Genera un `.zip` con el dump de PostgreSQL y lo sube al disco `r2_private`. |
+
+Solo se respalda la base de datos: el código está en Git, y un respaldo de archivos incluiría el `.env` con las credenciales. Por eso conviene guardar una copia del `.env` fuera del servidor.
+
+La retención (`config/backup.php`) conserva todos los respaldos de los últimos 7 días, uno diario durante 16 días, uno semanal durante 8 semanas, uno mensual durante 4 meses y uno anual durante 2 años. Si el total supera 5000 MB, se borran los más antiguos.
+
+Comandos útiles:
+
+```bash
+docker compose exec app php artisan backup:run --only-db   # respaldo manual
+docker compose exec app php artisan backup:list            # estado de los respaldos
+```
+
+Para restaurar, descarga el `.zip` desde R2, extrae el `.sql` de la carpeta `db-dumps/` y cárgalo en el contenedor de Postgres:
+
+```bash
+docker compose exec -T postgres psql -U "$DB_USERNAME" -d "$DB_DATABASE" < db-dumps/postgresql-cafe_del_tiempo.sql
+```
+
+Haz una restauración de prueba en un entorno aparte de vez en cuando: un respaldo que nunca se restauró no está comprobado.
+
 ## Actualizar a una versión nueva (deploy siguiente)
 
 Una vez que el stack ya está arriba, actualizar el código es repetir el mismo patrón sin recrear nada desde cero:
@@ -157,7 +187,7 @@ docker compose up -d --build
 docker compose exec app php artisan migrate --force
 ```
 
-`git pull` trae el código **y** el `public/build/` ya compilado y comiteado — no hay nada que compilar en el servidor. Este es, a mano, exactamente el mismo flujo que ejecuta el pipeline de CD (ver [`ci-cd.md`](ci-cd.md)).
+`git pull` trae el código **y** el `public/build/` ya compilado y comiteado — no hay nada que compilar en el servidor. Es el mismo flujo que ejecuta el deploy del pipeline de Bitbucket (ver [`ci-cd.md`](ci-cd.md)).
 
 ## Comandos útiles del día a día
 
@@ -179,8 +209,7 @@ docker compose exec app php artisan migrate --force
 - **Puerto `9000` ya en uso** en el servidor: cambia el mapeo de puertos del servicio `nginx` en `docker-compose.yml` (ej. `"8080:80"`) — pero recuerda que eso es un cambio de infraestructura, no de código de la app.
 - **`GET /livewire-XXXXXXXX/livewire.min.js` da 404**: el bloque de nginx que cachea `.js`/`.css`/etc. (`docker/nginx/default.conf`) intercepta esa ruta antes que Laravel porque *parece* un archivo estático por la extensión, pero es una ruta dinámica que registra Livewire (no existe como archivo en `public/`). Ya está resuelto en el `default.conf` del repo (cae a `index.php` si el archivo no existe en vez de devolver 404 directo) — si lo ves en un servidor viejo, actualiza ese archivo con `git pull` y `docker compose restart nginx` (no hace falta reconstruir, es un volumen montado).
 
-## Qué queda pendiente (fuera de esta guía)
+## Qué queda pendiente
 
-1. **Reverse proxy + dominio + TLS** delante del puerto `9000` (Nginx/Caddy en el host, o Traefik) — hoy se accede directo por IP:puerto en HTTP plano.
-2. **Backups de Postgres y del volumen `app_storage`** — no cubierto aquí ni en `vision.md` todavía.
-3. **Automatizar todo esto** con Bitbucket Pipelines — el `bitbucket-pipelines.yml` ya está commiteado, falta terminar de configurarlo del lado de Bitbucket (variables, branch permissions) y resolver que `docker compose` no necesite `sudo` en el servidor — ver [`ci-cd.md`](ci-cd.md).
+1. **Volumen `app_storage`**: no se respalda. Hoy no guarda archivos de usuarios (sesiones y colas viven en la base de datos), pero habría que incluirlo si algún módulo empieza a guardar archivos.
+2. **Pruebas de restauración**: no están automatizadas; se hacen a mano.

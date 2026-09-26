@@ -98,9 +98,9 @@ docker compose ps</x-landing::code>
         <p>Las migraciones no corren solas al arrancar, a propósito. Ejecútalas la primera vez y en cada actualización:</p>
         <x-landing::code>docker compose exec app php artisan migrate --force</x-landing::code>
 
-        <h3>6. Crea tu usuario y entra</h3>
-        <x-landing::code>docker compose exec app php artisan make:filament-user</x-landing::code>
-        <p>Abre <code>http://TU_IP:9000/app</code> e inicia sesión. Para acceder también al panel de administración, sigue <a href="#primer-usuario">Tu primer usuario</a>.</p>
+        <h3>6. Crea tu usuario administrador y entra</h3>
+        <x-landing::code>docker compose exec app php artisan user:create --admin</x-landing::code>
+        <p>Abre <code>http://TU_IP:9000/app</code> e inicia sesión. Más opciones del comando en <a href="#primer-usuario">Tu primer usuario</a>.</p>
 
         <x-landing::callout variant="info" title="¿El puerto 9000 no responde?">
             Revisa el firewall del servidor (por ejemplo, <code>sudo ufw allow 9000/tcp</code>) o cambia el mapeo de puertos del servicio <code>nginx</code> en <code>docker-compose.yml</code>.
@@ -163,11 +163,14 @@ php artisan optimize</x-landing::code>
     </x-landing::docs-section>
 
     <x-landing::docs-section id="primer-usuario" title="Tu primer usuario">
-        <p>Crea el usuario desde la terminal (en Docker, antepone <code>docker compose exec app</code>):</p>
-        <x-landing::code>php artisan make:filament-user</x-landing::code>
-        <p>Ese usuario entra al panel personal en <code>/app</code>. El panel de administración de la instancia, en <code>/system</code>, requiere además marcarlo como administrador:</p>
-        <x-landing::code>php artisan tinker --execute 'App\Models\User::where("email", "tu@correo.com")->update(["is_admin" => true]);'</x-landing::code>
-        <p>Desde <code>/system</code> puedes crear las cuentas del resto de personas sin abrir el registro público.</p>
+        <p>Crea usuarios desde la terminal con <code>user:create</code> (en Docker, antepone <code>docker compose exec app</code>). El comando pide nombre, correo y contraseña:</p>
+        <x-landing::code>php artisan user:create --admin</x-landing::code>
+        <ul>
+            <li>Con <code>--admin</code>, el usuario entra al panel personal (<code>/app</code>) y al de administración de la instancia (<code>/system</code>).</li>
+            <li>Sin <code>--admin</code>, solo entra a <code>/app</code>.</li>
+            <li>Puedes pasar <code>--name</code> y <code>--email</code> para no escribirlos en el prompt. La contraseña siempre se pide de forma interactiva, para que no quede en el historial de la terminal.</li>
+        </ul>
+        <p>Desde <code>/system</code> también puedes crear las cuentas del resto de personas sin abrir el registro público.</p>
     </x-landing::docs-section>
 
     <x-landing::docs-section id="procesos" title="Colas y tareas programadas">
